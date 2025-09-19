@@ -1,0 +1,90 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Product } from './entities/product.entity';
+import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
+import { Category } from '../categories/entities/category.entity';
+
+@Injectable()
+export class ProductsService {
+  constructor(
+    @InjectRepository(Product) private readonly productRepo: Repository<Product>,
+    @InjectRepository(Category) private readonly categoryRepo: Repository<Category>,
+  ) {}
+
+  async create(dto: CreateProductDto): Promise<Product> {
+    const product = this.productRepo.create({
+      nombre: dto.nombre,
+      descripcion: dto.descripcion,
+      precio: dto.precio,
+      imagenUrl: dto.imagenUrl,
+      stock: dto.stock ?? 0,
+      disponible: dto.disponible ?? true,
+    });
+
+    if (dto.categoryId) {
+      const category = await this.categoryRepo.findOne({ where: { id: dto.categoryId } });
+      if (category) product.categoria = category;
+    }
+
+    return this.productRepo.save(product);
+  }
+
+  findAll(): Promise<Product[]> {
+    return this.productRepo.find({ relations: ['categoria'] });
+  }
+
+  async findOne(id: number): Promise<Product> {
+    const product = await this.productRepo.findOne({ where: { id }, relations: ['categoria'] });
+    if (!product) throw new NotFoundException(`Producto ${id} no encontrado`);
+    return product;
+  }
+
+  async update(id: number, dto: UpdateProductDto): Promise<Product> {
+    const product = await this.findOne(id);
+
+    if (dto.categoryId !== undefined) {
+      if (dto.categoryId === null) {
+        product.categoria = null;
+      } else {
+        const category = await this.categoryRepo.findOne({ where: { id: dto.categoryId } });
+        if (!category) throw new NotFoundException(`Categoría ${dto.categoryId} no encontrada`);
+        product.categoria = category;
+      }
+    }
+
+    if (dto.nombre !== undefined) product.nombre = dto.nombre;
+    if (dto.descripcion !== undefined) product.descripcion = dto.descripcion;
+    if (dto.precio !== undefined) product.precio = dto.precio;
+    if (dto.imagenUrl !== undefined) product.imagenUrl = dto.imagenUrl;
+    if (dto.stock !== undefined) product.stock = dto.stock;
+    if (dto.disponible !== undefined) product.disponible = dto.disponible;
+
+    return this.productRepo.save(product);
+  }
+
+  async replace(id: number, dto: CreateProductDto): Promise<Product> {
+    // Reemplazo completo: requiere campos obligatorios
+    const product = await this.productRepo.findOne({ where: { id } });
+    if (!product) throw new NotFoundException(`Producto ${id} no encontrado`);
+    product.nombre = dto.nombre;
+    product.descripcion = dto.descripcion;
+    product.precio = dto.precio;
+    product.imagenUrl = dto.imagenUrl;
+    product.stock = dto.stock ?? 0;
+    product.disponible = dto.disponible ?? true;
+    if (dto.categoryId) {
+      const category = await this.categoryRepo.findOne({ where: { id: dto.categoryId } });
+      if (category) product.categoria = category; else product.categoria = null;
+    } else {
+      product.categoria = null;
+    }
+    return this.productRepo.save(product);
+  }
+
+  async remove(id: number): Promise<void> {
+    const product = await this.findOne(id);
+    await this.productRepo.remove(product);
+  }
+}
