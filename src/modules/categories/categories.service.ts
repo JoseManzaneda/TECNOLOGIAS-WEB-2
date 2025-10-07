@@ -45,5 +45,6 @@ export class CategoriesService {
   async remove(id: number) {
     const category = await this.findOne(id);
     await this.categoryRepo.remove(category);
+    return { message: `Categoría ${id} eliminada exitosamente` };
   }
 }

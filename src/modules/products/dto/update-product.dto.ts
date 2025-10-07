@@ -1,10 +1,7 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateProductDto } from './create-product.dto';
-import { MaxLength, IsOptional, IsString } from 'class-validator';
 
 export class UpdateProductDto extends PartialType(CreateProductDto) {
-	@IsOptional()
-	@IsString()
-		@MaxLength(100, { message: 'nombre: longitud máxima 100' })
-	nombre?: string;
+  // Todos los campos son opcionales gracias a PartialType
+  // Las validaciones se heredan de CreateProductDto pero se vuelven opcionales
 }

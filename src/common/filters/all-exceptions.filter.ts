@@ -4,6 +4,7 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { ValidationError } from 'class-validator';
 
@@ -15,39 +16,72 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const request = ctx.getRequest();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let responseBody: any = {
-      statusCode: status,
-      path: request.url,
-      timestamp: new Date().toISOString(),
-      message: 'Error interno del servidor',
-    };
+    let message = 'Error interno del servidor';
+    let errors: Array<{ field: string; message: string }> = [];
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
-      const res = exception.getResponse();
-      if (typeof res === 'string') {
-        responseBody.message = res;
-      } else if (typeof res === 'object') {
-        const obj: any = res;
-        responseBody = { ...responseBody, ...obj };
+      const response = exception.getResponse();
+      
+      if (typeof response === 'string') {
+        message = response;
+      } else if (typeof response === 'object') {
+        const responseObj: any = response;
+        message = responseObj.message || message;
+        
+        // Manejar errores de validación de class-validator
+        if (Array.isArray(responseObj.message)) {
+          message = 'Error de validación';
+          errors = this.extractValidationErrors(responseObj.message);
+        }
       }
-    } else if (
-      Array.isArray((exception as any)?.message) &&
-      (exception as any).message[0] instanceof ValidationError
-    ) {
-      status = HttpStatus.BAD_REQUEST;
-      responseBody.message = 'Error de validación';
-      responseBody.errors = (exception as any).message.map((e: ValidationError) => ({
-        property: e.property,
-        constraints: e.constraints,
-      }));
     } else if ((exception as any)?.name === 'QueryFailedError') {
       status = HttpStatus.BAD_REQUEST;
-      responseBody.message = 'Error en base de datos';
-      responseBody.detail = (exception as any).message;
+      message = 'Error en base de datos';
+      const dbError = exception as any;
+      
+      // Manejar errores específicos de MySQL
+      if (dbError.code === 'ER_DUP_ENTRY') {
+        message = 'El registro ya existe';
+      } else if (dbError.code === 'ER_NO_REFERENCED_ROW_2') {
+        message = 'Referencia inválida';
+      }
     }
 
-    responseBody.statusCode = status;
+    const responseBody = {
+      status: 'error',
+      code: status,
+      message,
+      ...(errors.length > 0 && { errors }),
+      timestamp: new Date().toISOString(),
+      path: request.url,
+    };
+
     reply.status(status).send(responseBody);
+  }
+
+  private extractValidationErrors(validationErrors: any[]): Array<{ field: string; message: string }> {
+    const errors: Array<{ field: string; message: string }> = [];
+    
+    validationErrors.forEach((error) => {
+      if (error instanceof ValidationError) {
+        const constraints = error.constraints;
+        if (constraints) {
+          Object.values(constraints).forEach((constraint: string) => {
+            errors.push({
+              field: error.property,
+              message: constraint,
+            });
+          });
+        }
+      } else if (typeof error === 'string') {
+        errors.push({
+          field: 'general',
+          message: error,
+        });
+      }
+    });
+    
+    return errors;
   }
 }

@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -39,15 +39,31 @@ export class UsersService {
     return this.userRepo.findOne({ where: { email } });
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, currentUser?: any) {
     const user = await this.userRepo.findOne({ where: { id } });
     if (!user) throw new NotFoundException('Usuario no encontrado');
+    
+    // Verificar autorización: admin puede ver cualquier usuario, cliente solo su propio perfil
+    if (currentUser && currentUser.rol !== 'admin' && currentUser.id !== id) {
+      throw new ForbiddenException('No tienes permisos para acceder a este usuario');
+    }
+    
     return this.sanitize(user);
   }
 
-  async update(id: number, dto: UpdateUserDto) {
+  async update(id: number, dto: UpdateUserDto, currentUser?: any) {
     const user = await this.userRepo.findOne({ where: { id } });
     if (!user) throw new NotFoundException('Usuario no encontrado');
+
+    // Verificar autorización: admin puede actualizar cualquier usuario, cliente solo su propio perfil
+    if (currentUser && currentUser.rol !== 'admin' && currentUser.id !== id) {
+      throw new ForbiddenException('No tienes permisos para actualizar este usuario');
+    }
+
+    // Los clientes no pueden cambiar su propio rol
+    if (currentUser && currentUser.rol !== 'admin' && dto.rol !== undefined) {
+      throw new ForbiddenException('No puedes cambiar tu propio rol');
+    }
 
     if (dto.email && dto.email !== user.email) {
       const exists = await this.userRepo.findOne({ where: { email: dto.email } });
@@ -63,9 +79,20 @@ export class UsersService {
     return this.sanitize(saved);
   }
 
-  async replace(id: number, dto: CreateUserDto) {
+  async replace(id: number, dto: CreateUserDto, currentUser?: any) {
     const user = await this.userRepo.findOne({ where: { id } });
     if (!user) throw new NotFoundException('Usuario no encontrado');
+
+    // Verificar autorización: admin puede reemplazar cualquier usuario, cliente solo su propio perfil
+    if (currentUser && currentUser.rol !== 'admin' && currentUser.id !== id) {
+      throw new ForbiddenException('No tienes permisos para reemplazar este usuario');
+    }
+
+    // Los clientes no pueden cambiar su propio rol
+    if (currentUser && currentUser.rol !== 'admin' && dto.rol !== undefined && dto.rol !== user.rol) {
+      throw new ForbiddenException('No puedes cambiar tu propio rol');
+    }
+
     if (dto.email && dto.email !== user.email) {
       const exists = await this.userRepo.findOne({ where: { email: dto.email } });
       if (exists) throw new ConflictException('Email ya registrado');

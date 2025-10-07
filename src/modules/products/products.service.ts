@@ -83,8 +83,9 @@ export class ProductsService {
     return this.productRepo.save(product);
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: number) {
     const product = await this.findOne(id);
     await this.productRepo.remove(product);
+    return { message: `Producto ${id} eliminado exitosamente` };
   }
 }

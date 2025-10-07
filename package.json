@@ -9,7 +9,10 @@
     "start:prod": "node dist/main.js",
     "build": "nest build",
     "lint": "eslint ./src --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\"",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
@@ -35,14 +38,19 @@
     "@nestjs/schematics": "^10.0.2",
     "@nestjs/testing": "^10.0.0",
     "@types/bcrypt": "^5.0.0",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.11.30",
     "@types/passport-jwt": "^4.0.1",
+    "@types/supertest": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-import": "^2.29.1",
+    "jest": "^30.2.0",
     "prettier": "^3.2.5",
+    "supertest": "^7.1.4",
+    "ts-jest": "^29.4.4",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.4.2"
