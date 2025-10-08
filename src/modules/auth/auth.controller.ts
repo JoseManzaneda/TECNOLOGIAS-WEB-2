@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 
 /**
  * Controlador de autenticación
@@ -47,8 +48,13 @@ export class AuthController {
    */
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  register(@Body() dto: CreateUserDto) {
-    return this.usersService.create(dto);
+  register(@Body() dto: RegisterDto) {
+    // Forzar rol cliente para registro público
+    const userDto: CreateUserDto = {
+      ...dto,
+      rol: 'cliente'
+    };
+    return this.usersService.create(userDto);
   }
 
   /**

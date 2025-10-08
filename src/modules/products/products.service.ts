@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
@@ -14,6 +14,16 @@ export class ProductsService {
   ) {}
 
   async create(dto: CreateProductDto): Promise<Product> {
+    // Validar precio positivo
+    if (dto.precio <= 0) {
+      throw new BadRequestException('El precio debe ser mayor a 0');
+    }
+
+    // Validar stock no negativo
+    if (dto.stock !== undefined && dto.stock < 0) {
+      throw new BadRequestException('El stock no puede ser negativo');
+    }
+
     const product = this.productRepo.create({
       nombre: dto.nombre,
       descripcion: dto.descripcion,
@@ -25,7 +35,10 @@ export class ProductsService {
 
     if (dto.categoryId) {
       const category = await this.categoryRepo.findOne({ where: { id: dto.categoryId } });
-      if (category) product.categoria = category;
+      if (!category) {
+        throw new NotFoundException(`Categoría con ID ${dto.categoryId} no encontrada`);
+      }
+      product.categoria = category;
     }
 
     return this.productRepo.save(product);
@@ -43,6 +56,16 @@ export class ProductsService {
 
   async update(id: number, dto: UpdateProductDto): Promise<Product> {
     const product = await this.findOne(id);
+
+    // Validar precio positivo si se actualiza
+    if (dto.precio !== undefined && dto.precio <= 0) {
+      throw new BadRequestException('El precio debe ser mayor a 0');
+    }
+
+    // Validar stock no negativo si se actualiza
+    if (dto.stock !== undefined && dto.stock < 0) {
+      throw new BadRequestException('El stock no puede ser negativo');
+    }
 
     if (dto.categoryId !== undefined) {
       if (dto.categoryId === null) {

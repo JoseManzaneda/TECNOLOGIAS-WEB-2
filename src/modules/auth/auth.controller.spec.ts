@@ -42,12 +42,11 @@ describe('AuthController', () => {
 
   describe('register', () => {
     it('debe registrar un usuario exitosamente', async () => {
-      const createUserDto: CreateUserDto = {
+      const registerDto = {
         nombre: 'Juan Pérez',
         email: 'juan@example.com',
         password: 'Password123',
         telefono: '987654321',
-        rol: 'cliente',
       };
 
       const expectedResult = {
@@ -61,14 +60,17 @@ describe('AuthController', () => {
 
       usersService.create.mockResolvedValue(expectedResult);
 
-      const result = await controller.register(createUserDto);
+      const result = await controller.register(registerDto);
 
-      expect(usersService.create).toHaveBeenCalledWith(createUserDto);
+      expect(usersService.create).toHaveBeenCalledWith({
+        ...registerDto,
+        rol: 'cliente'
+      });
       expect(result).toEqual(expectedResult);
     });
 
     it('debe lanzar ConflictException si el email ya existe', async () => {
-      const createUserDto: CreateUserDto = {
+      const registerDto = {
         nombre: 'Juan Pérez',
         email: 'juan@example.com',
         password: 'Password123',
@@ -78,10 +80,13 @@ describe('AuthController', () => {
         new ConflictException('Email ya registrado')
       );
 
-      await expect(controller.register(createUserDto)).rejects.toThrow(
+      await expect(controller.register(registerDto)).rejects.toThrow(
         ConflictException
       );
-      expect(usersService.create).toHaveBeenCalledWith(createUserDto);
+      expect(usersService.create).toHaveBeenCalledWith({
+        ...registerDto,
+        rol: 'cliente'
+      });
     });
   });
 

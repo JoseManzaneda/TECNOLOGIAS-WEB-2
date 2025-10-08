@@ -1,10 +1,11 @@
-import { IsBoolean, IsInt, IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString, MaxLength, Min, IsUrl } from 'class-validator';
+import { IsBoolean, IsInt, IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString, MaxLength, MinLength, Min, IsUrl } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
 export class CreateProductDto {
   @IsString({ message: 'El nombre debe ser una cadena de texto' })
   @IsNotEmpty({ message: 'El nombre no puede estar vacío' })
-  @MaxLength(100, { message: 'Nombre: longitud máxima 100 caracteres' })
+  @MinLength(2, { message: 'El nombre debe tener al menos 2 caracteres' })
+  @MaxLength(50, { message: 'Nombre: longitud máxima 50 caracteres' })
   nombre!: string;
 
   @IsOptional()

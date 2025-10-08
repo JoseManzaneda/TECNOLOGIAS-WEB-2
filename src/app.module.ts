@@ -7,6 +7,13 @@ import { ProductsModule } from './modules/products/products.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { DireccionesModule } from './modules/direcciones/direcciones.module';
+import { PedidosModule } from './modules/pedidos/pedidos.module';
+import { PagosModule } from './modules/pagos/pagos.module';
+import { IngredientesModule } from './modules/ingredientes/ingredientes.module';
+import { ProductoIngredientesModule } from './modules/producto-ingredientes/producto-ingredientes.module';
+import { PuntosModule } from './modules/puntos/puntos.module';
+import { ReservasModule } from './modules/reservas/reservas.module';
 
 @Controller()
 class AppController {
@@ -21,6 +28,13 @@ class AppController {
         categorias: '/api/categories',
         productos: '/api/products',
         usuarios: '/api/users',
+        direcciones: '/api/direcciones',
+        pedidos: '/api/pedidos',
+        pagos: '/api/pagos',
+        ingredientes: '/api/ingredientes',
+        productoIngredientes: '/api/producto-ingredientes',
+        puntos: '/api/puntos',
+        reservas: '/api/reservas',
         auth: {
           register: '/api/auth/register',
           login: '/api/auth/login',
@@ -58,6 +72,13 @@ class AppController {
     ProductsModule,
     UsersModule,
     AuthModule,
+    DireccionesModule,
+    PedidosModule,
+    PagosModule,
+    IngredientesModule,
+    ProductoIngredientesModule,
+    PuntosModule,
+    ReservasModule,
   ],
   controllers: [AppController],
 })
