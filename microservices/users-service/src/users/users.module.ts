@@ -9,6 +9,7 @@ import { User } from './entities/user.entity';
 import { Direccion } from './entities/direccion.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { EventsController } from './events.controller';
+import { RolesGuard } from '../common/guards/roles.guard';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { EventsController } from './events.controller';
     }),
   ],
   controllers: [UsersController, EventsController],
-  providers: [UsersService, JwtStrategy],
+  providers: [UsersService, JwtStrategy, RolesGuard],
   exports: [UsersService],
 })
 export class UsersModule {}

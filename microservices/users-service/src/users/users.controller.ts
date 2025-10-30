@@ -5,6 +5,8 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { UpdateAddressDto } from './dto/update-address.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { RolesGuard } from '../common/guards/roles.guard';
 
 @Controller('users')
 export class UsersController {
@@ -17,9 +19,10 @@ export class UsersController {
     return this.usersService.findById(req.user.id);
   }
 
-  // Listado (podría requerir rol admin en producción)
+  // Listado (admin)
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   async findAll() {
     return this.usersService.findAll();
   }
@@ -30,9 +33,10 @@ export class UsersController {
     return this.usersService.findById(Number(id));
   }
 
-  // Crear usuario manualmente (opcional - admin)
+  // Crear usuario manualmente (admin)
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() dto: CreateUserDto) {
     return this.usersService.create(dto);

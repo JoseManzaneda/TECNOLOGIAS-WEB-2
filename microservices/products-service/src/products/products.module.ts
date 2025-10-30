@@ -6,6 +6,7 @@ import { Product } from './entities/product.entity';
 import { ProductsController } from './products.controller';
 import { ProductsService } from './products.service';
 import { Category } from '../categories/entities/category.entity';
+import { RolesGuard } from '../common/guards/roles.guard';
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { Category } from '../categories/entities/category.entity';
     ]),
   ],
   controllers: [ProductsController],
-  providers: [ProductsService],
+  providers: [ProductsService, RolesGuard],
   exports: [ProductsService],
 })
 export class ProductsModule {}
