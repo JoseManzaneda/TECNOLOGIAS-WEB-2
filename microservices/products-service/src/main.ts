@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { AppModule } from './app.module';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -23,6 +24,17 @@ async function bootstrap() {
   });
 
   await app.startAllMicroservices();
+  
+  // Swagger
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Products Service API')
+    .setDescription('Endpoints de productos y categorías')
+    .setVersion('1.0.0')
+    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' })
+    .build();
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('docs', app, document);
+
   await app.listen(port);
   console.log(`🛒 Products Service running on: http://localhost:${port}`);
 }

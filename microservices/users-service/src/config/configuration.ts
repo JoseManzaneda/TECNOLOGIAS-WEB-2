@@ -17,7 +17,7 @@ export default () => ({
 
   rabbitmq: {
     url: process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672',
-    queue: process.env.RABBITMQ_QUEUE || 'users_queue',
+    queue: process.env.RABBITMQ_QUEUE || 'auth_queue',
     exchange: process.env.RABBITMQ_EXCHANGE || 'cafeteria.events',
   },
 });
