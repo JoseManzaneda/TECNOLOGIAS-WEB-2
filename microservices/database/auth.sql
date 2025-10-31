@@ -25,6 +25,7 @@ CREATE TABLE refresh_tokens (
   INDEX idx_token (token(255))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- Contraseñas: Admin123 y Cliente123 respectivamente (hasheadas con bcrypt salt 10)
 INSERT INTO usuarios (nombre, email, contraseña, rol) VALUES 
-('Administrador', 'admin@cafeteria.com', '$2b$10$XkEpYQH5h5B5h5B5h5B5h5B5h5B5h5B5h5B5h5B5h5B5h5B5h5B5h', 'admin'),
-('Cliente Demo', 'cliente@cafeteria.com', '$2b$10$XkEpYQH5h5B5h5B5h5B5h5B5h5B5h5B5h5B5h5B5h5B5h5B5h5B5h', 'cliente');
+('Administrador', 'admin@cafeteria.com', '$2b$10$3wzIXpeAlAU00HOgqakmcuJ.qj8rJpGOEaKzBBjt5JhjPusmXqWjK', 'admin'),
+('Cliente Demo', 'cliente@cafeteria.com', '$2b$10$mukneXbPNNN8Tda.zoBf3.wZj2UUeZZj2qFdrNA4RiMCB2hJQxdFi', 'cliente');

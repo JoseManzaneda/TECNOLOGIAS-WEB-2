@@ -11,54 +11,188 @@ Esta guía te prepara para explicar y demostrar el proyecto de forma clara, paso
   - Documentación OpenAPI/Swagger por servicio y agregada en el Gateway
   - Contenedores y orquestación con Docker Compose
 
-## Arquitectura (resumen)
+## Arquitectura del Sistema
 
-Servicios y puertos expuestos por defecto:
-- API Gateway: http://localhost:3000
-  - Proxy:
-    - /api/auth → Auth Service
-    - /api/users → Users Service
-    - /api/products y /api/categories → Products Service
-  - Swagger agregado: http://localhost:3000/api/docs
-- Auth Service: http://localhost:3001 (Swagger: /docs)
-- Users Service: http://localhost:3002 (Swagger: /docs)
-- Products Service: http://localhost:3003 (Swagger: /docs)
-- RabbitMQ Management: http://localhost:15672 (guest/guest)
-- MySQL:
-  - auth-db: localhost:3307
-  - users-db: localhost:3308
-  - products-db: localhost:3309
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         CLIENTE                                 │
+│              (Browser, Postman, PowerShell, etc.)              │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ HTTP + JWT
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      API GATEWAY :3000                          │
+│  • Enrutamiento: /api/auth, /api/users, /api/products         │
+│  • Swagger Agregado: /api/docs                                 │
+│  • CORS habilitado                                             │
+└──────────┬──────────────────┬──────────────────┬────────────────┘
+           │                  │                  │
+           ▼                  ▼                  ▼
+   ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
+   │ AUTH SERVICE  │  │ USERS SERVICE │  │PRODUCTS SRVCE │
+   │  Port: 3001   │  │  Port: 3002   │  │  Port: 3003   │
+   │ • Register    │  │ • Profiles    │  │ • Products    │
+   │ • Login (JWT) │  │ • Addresses   │  │ • Categories  │
+   │ • Validation  │  │ • JWT Guard   │  │ • JWT Guard   │
+   └───────┬───────┘  └───────┬───────┘  └───────┬───────┘
+           │                  │                  │
+           │ Pub: user.reg    │ Sub: user.reg    │ Pub: product.*
+           └──────────────────┼──────────────────┘
+                              │
+                    ┌─────────▼──────────┐
+                    │     RABBITMQ       │
+                    │   Port: 5672       │
+                    │   Mgmt: 15672      │
+                    │ Exchange: cafeteria│
+                    └────────────────────┘
+           
+   ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
+   │   auth_db     │  │   users_db    │  │  products_db  │
+   │  MySQL:3307   │  │  MySQL:3308   │  │  MySQL:3309   │
+   │ • usuarios    │  │ • usuarios    │  │ • productos   │
+   │ • refresh_tok │  │ • direcciones │  │ • categorias  │
+   └───────────────┘  └───────────────┘  └───────────────┘
+```
 
-Bases de datos independientes por servicio, inicializadas desde `microservices/database/*.sql` con datos de ejemplo (categorías, productos y usuarios de muestra).
+### Servicios y Puertos
 
-Notas clave de seguridad:
-- Autenticación con JWT; cada servicio valida el token con el mismo secreto.
-- Autorización por roles (cliente/admin) aplicada en Users y Products.
-- El Gateway enruta; la validación de JWT ocurre en cada microservicio.
+| Servicio | Puerto | URL | Swagger |
+|----------|--------|-----|---------|
+| API Gateway | 3000 | http://localhost:3000 | http://localhost:3000/api/docs |
+| Auth Service | 3001 | http://localhost:3001 | http://localhost:3001/docs |
+| Users Service | 3002 | http://localhost:3002 | http://localhost:3002/docs |
+| Products Service | 3003 | http://localhost:3003 | http://localhost:3003/docs |
+| RabbitMQ | 5672/15672 | amqp://localhost:5672 | http://localhost:15672 |
+| MySQL (auth) | 3307 | localhost:3307 | - |
+| MySQL (users) | 3308 | localhost:3308 | - |
+| MySQL (products) | 3309 | localhost:3309 | - |
 
-## Cómo ejecutar el sistema
+### Flujo de Datos
 
-Requisitos: Docker Desktop instalado y activo.
+**Registro de usuario:**
+1. Cliente → Gateway `/api/auth/register`
+2. Gateway → Auth Service `:3001/auth/register`
+3. Auth guarda en `auth_db` y publica evento `user.registered` en RabbitMQ
+4. Users Service consume evento y crea perfil en `users_db`
 
-1) Levantar todo con Docker Compose (desde la raíz del repo):
+**Login y autenticación:**
+1. Cliente → Gateway `/api/auth/login` con email/password
+2. Auth valida credenciales y genera JWT firmado
+3. Cliente usa JWT en header `Authorization: Bearer <token>`
+4. Cada microservicio valida JWT independientemente con el mismo secreto
+
+**Autorización por roles:**
+- Endpoints de lectura (GET products/categories): públicos
+- Endpoints de perfil (GET /users/me): requieren JWT
+- Endpoints de escritura (POST/PUT/DELETE products): requieren JWT + rol admin
+
+### Datos Iniciales
+
+Las bases de datos se inicializan automáticamente con:
+- **Usuarios**: admin@cafeteria.com (admin), cliente@cafeteria.com (cliente)
+- **Categorías**: Bebidas Calientes, Bebidas Frías, Postres, Snacks
+- **Productos**: 10 items precargados (Cappuccino, Latte, Smoothies, etc.)
+
+## Preparación ANTES de la demo
+
+### 🚀 Opción Rápida: Script Automático (RECOMENDADO)
+
+Ejecuta el script de preparación que hace todo por ti:
 
 ```powershell
-# Windows PowerShell
+# Desde la raíz del proyecto
+.\preparar-demo.ps1
+```
+
+Este script:
+- ✅ Verifica que Docker esté corriendo
+- ✅ Limpia volúmenes antiguos
+- ✅ Construye y levanta todos los servicios
+- ✅ Espera a que todo esté listo
+- ✅ Prueba el login automáticamente
+- ✅ Te muestra un resumen con todos los accesos
+
+**Si el script funciona → ya estás listo para la demo** 🎉
+
+#### Verificación Adicional: Script de Pruebas
+
+```powershell
+# Ejecuta suite completa de pruebas automáticas
+.\test-sistema.ps1
+```
+
+Este script prueba:
+- ✅ Disponibilidad de todos los servicios
+- ✅ Login con admin y cliente
+- ✅ Endpoints públicos (productos, categorías)
+- ✅ Endpoints protegidos (perfil)
+- ✅ Control de roles (403 para cliente, 201 para admin)
+- ✅ RabbitMQ Management UI
+
+**Si todas las pruebas pasan → Sistema 100% funcional** 🎉
+
+---
+
+### 📋 Opción Manual: Paso a Paso
+
+Si prefieres hacerlo manualmente o el script falla:
+
+#### Paso 1: Limpiar volúmenes antiguos
+
+```powershell
+docker compose down -v
+```
+
+**¿Por qué?** Elimina bases de datos viejas para que se inicialicen con los scripts SQL actualizados (contraseñas correctas).
+
+#### Paso 2: Levantar el sistema
+
+```powershell
 docker compose up -d --build
 ```
 
-2) Verificar que los contenedores están arriba:
+Esto construye imágenes y crea 8 contenedores (3 BD, RabbitMQ, 3 servicios, Gateway).
+
+#### Paso 3: Esperar que arranquen (~45 segundos)
 
 ```powershell
+# Ver estado
 docker ps
+
+# Ver logs (opcional)
+docker compose logs -f
+# Presiona Ctrl+C para salir
 ```
 
-3) Accesos rápidos:
+#### Paso 4: Verificar accesos web
+
 - Gateway: http://localhost:3000
-- Swagger agregado: http://localhost:3000/api/docs
+- Swagger: http://localhost:3000/api/docs
 - RabbitMQ: http://localhost:15672 (guest/guest)
 
-Para más detalle de despliegue: ver `DOCKER.md`.
+#### Paso 5: Probar login
+
+```powershell
+$test = Invoke-RestMethod -Method Post -Uri 'http://localhost:3000/api/auth/login' -ContentType 'application/json' -Body '{"email":"admin@cafeteria.com","password":"Admin123"}'
+$test.access_token
+```
+
+Si ves un JWT → ✅ **Sistema listo**
+
+---
+
+### 📚 Recursos de referencia
+
+- **Guía detallada de preparación**: `PREPARACION-DEMO.md`
+- **Guía de Docker**: `DOCKER.md`
+- **Guía de seguridad**: `SEGURIDAD.md`
+
+### 👥 Usuarios precargados
+
+| Email | Contraseña | Rol | Uso en demo |
+|-------|-----------|-----|-------------|
+| admin@cafeteria.com | Admin123 | admin | Crear/modificar productos |
+| cliente@cafeteria.com | Cliente123 | cliente | Mostrar restricciones (403) |
 
 ---
 
@@ -68,118 +202,186 @@ La demostración se divide en tres partes. Puedes hacerla por Swagger UI (más v
 
 ### 1) Autenticación y seguridad
 
-Objetivo: mostrar registro, login, uso de JWT y control de roles.
+Objetivo: mostrar login con usuarios precargados, uso de JWT y control de roles.
 
-- Registrar un usuario cliente (vía Gateway):
+#### Opción A: Demo con usuario CLIENTE (recomendada para mostrar restricciones)
 
-```powershell
-$body = @{ email='juan@example.com'; password='Password123'; nombre='Juan Pérez'; telefono='555-1234' } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri 'http://localhost:3000/api/auth/register' -ContentType 'application/json' -Body $body
-```
-
-- Iniciar sesión y obtener el JWT:
+- Iniciar sesión con el cliente precargado:
 
 ```powershell
-$login = Invoke-RestMethod -Method Post -Uri 'http://localhost:3000/api/auth/login' -ContentType 'application/json' -Body (@{ email='juan@example.com'; password='Password123' } | ConvertTo-Json)
-$token = $login.access_token
-$headers = @{ Authorization = "Bearer $token" }
-$token
+$loginCliente = Invoke-RestMethod -Method Post -Uri 'http://localhost:3000/api/auth/login' -ContentType 'application/json' -Body (@{ email='cliente@cafeteria.com'; password='Cliente123' } | ConvertTo-Json)
+$tokenCliente = $loginCliente.access_token
+$headersCliente = @{ Authorization = "Bearer $tokenCliente" }
+Write-Host "Token Cliente obtenido: $tokenCliente"
 ```
 
-- Acceder a un endpoint protegido (perfil):
+- Acceder a su propio perfil (endpoint protegido):
 
 ```powershell
-Invoke-RestMethod -Uri 'http://localhost:3000/api/users/me' -Headers $headers
+$miPerfil = Invoke-RestMethod -Uri 'http://localhost:3000/api/users/me' -Headers $headersCliente
+$miPerfil
 ```
 
-- Intentar un endpoint solo-admin (debe fallar 403):
+- Intentar un endpoint solo-admin (debe fallar con 403 Forbidden):
 
 ```powershell
 $prodBody = @{ nombre='Café Especial'; descripcion='Origen único'; precio=65.00; id_categoria=1; stock=10 } | ConvertTo-Json
-# Nota: Invoke-RestMethod lanzará excepción en 403. Puedes observar el 403 usando curl:
-curl -X POST 'http://localhost:3000/api/products' -H "Authorization: Bearer $token" -H "Content-Type: application/json" -d $prodBody
+try {
+    Invoke-RestMethod -Method Post -Uri 'http://localhost:3000/api/products' -Headers $headersCliente -ContentType 'application/json' -Body $prodBody
+} catch {
+    Write-Host "❌ ACCESO DENEGADO (esperado): " -ForegroundColor Red
+    $_.Exception.Response.StatusCode
+}
 ```
 
-- Elevar el rol del usuario a admin para completar la prueba (opcional rápido):
+#### Opción B: Demo con usuario ADMIN (para mostrar permisos completos)
+
+- Iniciar sesión como administrador:
 
 ```powershell
-# Actualiza el rol en ambas BD para mantener consistencia
-docker exec -i auth-db mysql -uroot -proot -e "UPDATE auth_db.usuarios SET rol='admin' WHERE email='juan@example.com';"
-docker exec -i users-db mysql -uroot -proot -e "UPDATE users_db.usuarios SET rol='admin' WHERE email='juan@example.com';"
+$loginAdmin = Invoke-RestMethod -Method Post -Uri 'http://localhost:3000/api/auth/login' -ContentType 'application/json' -Body (@{ email='admin@cafeteria.com'; password='Admin123' } | ConvertTo-Json)
+$tokenAdmin = $loginAdmin.access_token
+$headersAdmin = @{ Authorization = "Bearer $tokenAdmin" }
+Write-Host "Token Admin obtenido: $tokenAdmin"
 ```
 
-- Reintentar crear producto (ahora debe responder 201):
+- Crear producto (debe responder 201 Created):
 
 ```powershell
-Invoke-RestMethod -Method Post -Uri 'http://localhost:3000/api/products' -Headers $headers -ContentType 'application/json' -Body $prodBody
+$prodBody = @{ nombre='Café Premium'; descripcion='Granos de altura'; precio=75.00; id_categoria=1; stock=15 } | ConvertTo-Json
+$nuevoProducto = Invoke-RestMethod -Method Post -Uri 'http://localhost:3000/api/products' -Headers $headersAdmin -ContentType 'application/json' -Body $prodBody
+$nuevoProducto
 ```
 
-Puntos a remarcar mientras presentas:
-- El JWT se emite en Auth y se valida en cada microservicio.
-- Los endpoints sensibles en Products y Users requieren rol admin.
-- Un usuario con rol cliente recibe 403 en operaciones restringidas.
+**Puntos clave para remarcar:**
+- ✅ El JWT se emite en Auth Service y se valida independientemente en cada microservicio
+- ✅ Los endpoints sensibles (crear/modificar productos, listar usuarios) requieren rol `admin`
+- ✅ Un usuario con rol `cliente` recibe **403 Forbidden** en operaciones restringidas
+- ✅ La autenticación es stateless (sin sesiones en servidor, solo validación de firma JWT)
 
 ### 2) Comunicación entre microservicios
 
-Objetivo: demostrar eventos asíncronos con RabbitMQ y datos sincronizados.
+Objetivo: demostrar eventos asíncronos con RabbitMQ y sincronización de datos entre servicios.
 
-Caso principal: `user.registered`
-1. Ya registraste `juan@example.com` en Auth (auth_db crea el usuario).
-2. Auth publica el evento `user.registered` en RabbitMQ.
-3. Users Service consume el evento y crea el perfil en `users_db`.
+#### Caso A: Evento `user.registered` (registro de nuevo usuario)
 
-Cómo evidenciarlo:
-- Opción A (API): lista de usuarios desde Users (requiere rol admin):
+1. Registrar un nuevo usuario desde Auth Service:
 
 ```powershell
-Invoke-RestMethod -Uri 'http://localhost:3000/api/users' -Headers $headers
+$nuevoUsuario = @{ 
+    email='juan@example.com'
+    password='Password123'
+    nombre='Juan Pérez'
+    telefono='555-1234'
+    rol='cliente'
+} | ConvertTo-Json
+
+$registro = Invoke-RestMethod -Method Post -Uri 'http://localhost:3000/api/auth/register' -ContentType 'application/json' -Body $nuevoUsuario
+$registro
 ```
 
-- Opción B (BD): consulta directa en `users_db`:
+2. **¿Qué sucede internamente?**
+   - Auth Service guarda el usuario en `auth_db`
+   - Auth Service **publica evento** `user.registered` en RabbitMQ
+   - Users Service **consume el evento** y crea el perfil en `users_db`
+
+3. **Verificar sincronización** - Opción A (API con token admin):
+
+```powershell
+$usuarios = Invoke-RestMethod -Uri 'http://localhost:3000/api/users' -Headers $headersAdmin
+$usuarios | Where-Object { $_.email -eq 'juan@example.com' }
+```
+
+4. **Verificar sincronización** - Opción B (consulta directa a BD):
 
 ```powershell
 docker exec -i users-db mysql -uroot -proot -e "SELECT id_usuario, nombre, email, rol FROM users_db.usuarios WHERE email='juan@example.com';"
 ```
 
-Extras (visuales):
-- Abre RabbitMQ Management → Exchanges → `cafeteria.events` para ver bindings y colas.
-- Crea/actualiza/elimina un producto (siendo admin) para generar eventos `product.*`.
+✅ **Resultado esperado:** El usuario existe en ambas bases de datos.
 
-### 3) Pruebas de Endpoints (rápidas)
+#### Caso B: Eventos de productos (visualizar en RabbitMQ)
 
-Puedes usar la UI agregada en `http://localhost:3000/api/docs` (botón Authorize para JWT) o los siguientes ejemplos.
-
-- Productos (público):
+1. Crear un producto con token admin (genera evento `product.created`):
 
 ```powershell
-Invoke-RestMethod -Uri 'http://localhost:3000/api/products'
+$nuevoProd = @{ nombre='Té Matcha'; descripcion='Té verde japonés'; precio=48.00; id_categoria=1; stock=25 } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri 'http://localhost:3000/api/products' -Headers $headersAdmin -ContentType 'application/json' -Body $nuevoProd
 ```
 
-- Categorías (público):
+2. **Ver eventos en RabbitMQ Management:**
+   - Abre http://localhost:15672 (guest/guest)
+   - Ve a pestaña **Exchanges** → busca `cafeteria.events`
+   - Haz clic en el exchange → verás bindings a las colas
+   - Ve a **Queues** → `auth_queue` y `products_queue` → verás mensajes procesados
+
+**Puntos clave para remarcar:**
+- ✅ Comunicación asíncrona desacoplada (Auth no necesita conocer la URL de Users)
+- ✅ Resiliencia: si Users Service está caído, los mensajes quedan en cola hasta que se recupere
+- ✅ Patrón Publish-Subscribe con exchange tipo `topic` y routing keys
+
+### 3) Pruebas de Endpoints
+
+Objetivo: validar todos los endpoints clave del sistema.
+
+#### Opción visual: Swagger UI agregado
+
+Abre http://localhost:3000/api/docs
+
+- Haz clic en el botón **Authorize** (🔒) en la esquina superior derecha
+- Pega el token (sin "Bearer", solo el JWT)
+- Ahora puedes probar todos los endpoints visualmente
+
+#### Opción PowerShell: Pruebas rápidas
+
+**Endpoints públicos (sin autenticación):**
 
 ```powershell
-Invoke-RestMethod -Uri 'http://localhost:3000/api/categories'
+# Listar todos los productos
+$productos = Invoke-RestMethod -Uri 'http://localhost:3000/api/products'
+$productos | Select-Object -First 3
+
+# Listar todas las categorías
+$categorias = Invoke-RestMethod -Uri 'http://localhost:3000/api/categories'
+$categorias
+
+# Obtener producto específico
+Invoke-RestMethod -Uri 'http://localhost:3000/api/products/1'
 ```
 
-- Perfil (protegido):
+**Endpoints protegidos (requieren JWT):**
 
 ```powershell
-Invoke-RestMethod -Uri 'http://localhost:3000/api/users/me' -Headers $headers
+# Ver mi perfil (cualquier usuario autenticado)
+Invoke-RestMethod -Uri 'http://localhost:3000/api/users/me' -Headers $headersAdmin
+
+# Listar todos los usuarios (solo admin)
+$todosUsuarios = Invoke-RestMethod -Uri 'http://localhost:3000/api/users' -Headers $headersAdmin
+$todosUsuarios
 ```
 
-- Crear categoría (admin):
+**Endpoints de escritura (solo admin):**
 
 ```powershell
-$catBody = @{ nombre='Nuevas Bebidas'; descripcion='Edición de temporada' } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri 'http://localhost:3000/api/categories' -Headers $headers -ContentType 'application/json' -Body $catBody
+# Crear nueva categoría
+$nuevaCat = @{ nombre='Bebidas de Temporada'; descripcion='Especiales del mes' } | ConvertTo-Json
+$catCreada = Invoke-RestMethod -Method Post -Uri 'http://localhost:3000/api/categories' -Headers $headersAdmin -ContentType 'application/json' -Body $nuevaCat
+$catCreada
+
+# Actualizar precio de un producto
+$actualizacion = @{ precio=52.50; stock=30 } | ConvertTo-Json
+$prodActualizado = Invoke-RestMethod -Method Patch -Uri 'http://localhost:3000/api/products/1' -Headers $headersAdmin -ContentType 'application/json' -Body $actualizacion
+$prodActualizado
+
+# Eliminar un producto (cuidado, es destructivo)
+# Invoke-RestMethod -Method Delete -Uri 'http://localhost:3000/api/products/10' -Headers $headersAdmin
 ```
 
-- Actualizar producto (admin):
-
-```powershell
-$updBody = @{ precio=59.90; stock=25 } | ConvertTo-Json
-Invoke-RestMethod -Method Patch -Uri 'http://localhost:3000/api/products/1' -Headers $headers -ContentType 'application/json' -Body $updBody
-```
+**Puntos clave para remarcar:**
+- ✅ Endpoints GET de lectura son públicos (catálogo accesible para frontend sin login)
+- ✅ Operaciones de escritura (POST/PUT/PATCH/DELETE) protegidas con JWT + rol admin
+- ✅ Validación de DTOs con class-validator (prueba enviar datos inválidos para ver errores 400)
+- ✅ Gateway enruta a servicios correctos manteniendo transparencia para el cliente
 
 ---
 
@@ -209,9 +411,33 @@ Invoke-RestMethod -Method Patch -Uri 'http://localhost:3000/api/products/1' -Hea
 - Error 401: revisa encabezado `Authorization: Bearer <token>` y que el token no haya expirado.
 - Puerto en uso: detén procesos previos o ajusta puertos en `docker-compose.yml`.
 
+## Checklist ANTES de tu presentación
+
+```
+☐ Docker Desktop está corriendo
+☐ Ejecutaste: docker compose down -v (limpiar volúmenes antiguos)
+☐ Ejecutaste: docker compose up -d --build
+☐ Esperaste ~30 segundos a que todos los servicios estén listos
+☐ Verificaste: docker ps (8 contenedores activos)
+☐ Probaste login con admin@cafeteria.com / Admin123 → obtuviste JWT
+☐ Abriste http://localhost:3000/api/docs (Swagger funciona)
+☐ Abriste http://localhost:15672 (RabbitMQ Management funciona)
+```
+
 ## Criterios de éxito de la demo
 
-- Se obtiene un JWT en el login y permite acceder a `/api/users/me`.
-- Un cliente recibe 403 al crear productos; un admin puede crear y modificar.
-- Tras registrar un usuario en Auth, el Users Service refleja ese usuario (API o BD), evidenciando la mensajería.
-- Swagger agregado responde y documenta todos los endpoints.
+✅ **Autenticación y seguridad:**
+- Login con cliente y admin genera JWTs válidos
+- Cliente puede ver su perfil pero NO crear productos (403)
+- Admin puede crear/modificar productos y categorías
+
+✅ **Comunicación entre microservicios:**
+- Registrar nuevo usuario en Auth → aparece automáticamente en Users Service
+- Verificable por API (/api/users) o consulta SQL directa
+- RabbitMQ Management muestra el exchange `cafeteria.events` con colas activas
+
+✅ **Pruebas de endpoints:**
+- Endpoints públicos (GET /products, /categories) responden sin token
+- Endpoints protegidos requieren JWT válido
+- Endpoints admin rechazan tokens de cliente con 403
+- Swagger UI documenta y permite probar todos los endpoints

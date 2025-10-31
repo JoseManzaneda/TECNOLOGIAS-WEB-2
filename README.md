@@ -166,8 +166,68 @@ Authorization: Bearer <JWT>
 En entorno no productivo se usa `synchronize: true`. En producción usar migraciones.
 
 ---
-_Generado como base inicial. Se irá ampliando en iteraciones siguientes._
-Este repositorio es para la materia de Tecnologías Web 2 semestre 2-2025
+
+## 🎯 Estado Actual del Proyecto
+
+### ✅ Arquitectura de Microservicios Completa
+
+El proyecto ha evolucionado de un monolito a una **arquitectura de microservicios completa** con:
+
+- **4 Microservicios**: Auth, Users, Products, API Gateway
+- **3 Bases de datos MySQL** independientes (database-per-service)
+- **RabbitMQ** para mensajería asíncrona
+- **Docker Compose** para orquestación
+- **JWT** con autorización por roles (cliente/admin)
+- **Swagger** agregado en Gateway
+
+### 📚 Documentación Disponible
+
+| Documento | Propósito |
+|-----------|-----------|
+| `Presentacion.md` | **Guía principal para demostrar el sistema** |
+| `PREPARACION-DEMO.md` | Pasos detallados de configuración inicial |
+| `preparar-demo.ps1` | Script automático de preparación |
+| `RESUMEN-EJECUTIVO.md` | Visión técnica completa del proyecto |
+| `CHECKLIST-PRESENTACION.md` | Lista de verificación pre-demo |
+| `DOCKER.md` | Guía de despliegue con Docker |
+| `SEGURIDAD.md` | Documentación de JWT y roles |
+| `MEJORAS-CALIDAD.md` | Buenas prácticas implementadas |
+
+### 🚀 Inicio Rápido
+
+```powershell
+# Preparación automática (recomendado)
+.\preparar-demo.ps1
+
+# O manual:
+docker compose down -v
+docker compose up -d --build
+```
+
+**Accesos:**
+- Gateway: http://localhost:3000
+- Swagger: http://localhost:3000/api/docs
+- RabbitMQ: http://localhost:15672 (guest/guest)
+
+**Usuarios de prueba:**
+- admin@cafeteria.com / Admin123 (rol: admin)
+- cliente@cafeteria.com / Cliente123 (rol: cliente)
+
+### 🏆 Características Principales
+
+✅ Autenticación JWT distribuida  
+✅ Autorización por roles (RBAC)  
+✅ Comunicación síncrona (REST) y asíncrona (RabbitMQ)  
+✅ Eventos: `user.registered`, `product.*`  
+✅ Swagger por servicio + UI agregada  
+✅ Validación de DTOs con class-validator  
+✅ Docker multi-stage builds  
+✅ Database per service pattern  
+
+---
+
+_Proyecto académico - Tecnologías Web 2, semestre 2-2025_  
+_Sistema backend con arquitectura de microservicios empresarial_
 Backend Cafetería
 Sistema backend para la gestión de una cafetería, desarrollado con NestJS y MySQL.
 
