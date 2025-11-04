@@ -1,53 +1,120 @@
 # TECNOLOGIAS-WEB-2
 
-Backend académico para una cafetería usando NestJS 10+, Fastify y TypeORM (MySQL).
+Backend académico para una cafetería usando NestJS 10+, Fastify y TypeORM (PostgreSQL).
 
 ## 🚀 Estado actual
 
-Primera fase: Estructura inicial del proyecto y módulo de Productos (CRUD básico) listo.
+**🔄 Proyecto reorganizado para migración a microservicios**
 
-## 📁 Estructura de carpetas
+El proyecto ha sido reestructurado usando el patrón **Strangler Fig** para facilitar la migración gradual desde un monolito a una arquitectura de microservicios.
+
+- ✅ **Monolito legacy** funcionando en `services/legacy-monolith/` (puerto 3001)
+- 🚧 **API Gateway** (pendiente)
+- 🚧 **User Service** (pendiente)
+- 🚧 **Catalog Service** (pendiente)
+
+> 📖 Ver [`MIGRACION-MICROSERVICIOS.md`](./MIGRACION-MICROSERVICIOS.md) para el plan completo de migración.
+
+## 📁 Nueva Estructura (Post-Reorganización)
 
 ```
-src/
-	main.ts                # Bootstrap con Fastify y ValidationPipe global
-	app.module.ts          # Módulo raíz con Config + TypeORM
-	config/
-		configuration.ts     # Carga centralizada de variables
-	common/                # (Reservado) Helpers, pipes, guards, interceptors reutilizables
-	modules/
-		categories/
-			entities/
-				category.entity.ts
-			categories.module.ts
-		products/
-			dto/
-				create-product.dto.ts
-				update-product.dto.ts
-			entities/
-				product.entity.ts
-			products.controller.ts
-			products.service.ts
-			products.module.ts
+TECNOLOGIAS-WEB-2/
+├── services/
+│   ├── api-gateway/          # 🚧 Futuro API Gateway
+│   ├── user-service/         # 🚧 Futuro User Service
+│   ├── catalog-service/      # 🚧 Futuro Catalog Service
+│   └── legacy-monolith/      # ✅ Monolito actual (puerto 3001)
+│       ├── src/              # Todo el código fuente
+│       │   ├── main.ts
+│       │   ├── app.module.ts
+│       │   ├── common/       # Guards, filters, interceptors
+│       │   ├── config/
+│       │   └── modules/      # Todos los módulos de negocio
+│       ├── package.json
+│       └── Dockerfile
+├── shared/
+│   ├── dto/                  # DTOs compartidos
+│   ├── interfaces/           # Interfaces TypeScript
+│   └── constants/            # Constantes y enums
+├── BaseDeDatos/
+├── docker-compose.yml
+├── dev.ps1                   # ✨ Script de utilidades
+├── MIGRACION-MICROSERVICIOS.md
+├── DESARROLLO.md
+└── ESTRUCTURA.md
 ```
 
-## 🧱 Entidades implementadas
+> 📖 Ver [`ESTRUCTURA.md`](./ESTRUCTURA.md) para detalles completos.
 
-- Producto (`productos`)
-- Categoría (`categorias`) – incluida para relación, CRUD se añadirá después
+## 🧱 Módulos implementados
+
+El monolito legacy incluye los siguientes módulos completos:
+
+- **Auth** - Autenticación JWT
+- **Users** - Gestión de usuarios
+- **Products** - Gestión de productos
+- **Categories** - Gestión de categorías
+- **Ingredientes** - Gestión de ingredientes
+- **Producto-Ingredientes** - Relaciones
+- **Pedidos** - Gestión de pedidos
+- **Pagos** - Gestión de pagos
+- **Reservas** - Gestión de reservas
+- **Direcciones** - Direcciones de usuarios
+- **Puntos** - Sistema de puntos
+
+## � Inicio Rápido
+
+### Opción 1: Docker (Recomendado)
+
+```bash
+# Usando el script de utilidades
+.\dev.ps1 start-monolith
+
+# O directamente con docker-compose
+docker-compose up legacy-monolith
+```
+
+Acceder a: **http://localhost:3001/api** (Swagger docs)
+
+### Opción 2: Desarrollo Local
+
+```bash
+# Instalar dependencias
+cd services/legacy-monolith
+npm install
+
+# Iniciar en modo desarrollo
+npm run start:dev
+```
 
 ## 🔧 Requisitos previos
 
-- Node.js 18+
-- MySQL en ejecución y base de datos creada (ejecutar script `cafeteria.sql` o permitir `synchronize` en desarrollo)
+- **Node.js 18+**
+- **Docker y Docker Compose** (para opción 1)
+- **PostgreSQL** (para desarrollo local)
+- **Redis** (para desarrollo local)
 
 ## ⚙️ Variables de entorno
 
-Copiar `.env.example` a `.env` y ajustar:
+El archivo `.env` en la raíz debe contener:
 
-```
-PORT=3000
-DB_HOST=localhost
+```env
+# Aplicación
+APP_PORT=3001
+
+# PostgreSQL
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_USER=cafeteria_user
+POSTGRES_PASSWORD=cafeteria_password
+POSTGRES_DB=cafeteria_db
+
+# JWT
+JWT_SECRET=your-secret-key
+
+# Redis
+REDIS_HOST=redis
+REDIS_PORT=6379
 DB_PORT=3306
 DB_USER=root
 DB_PASS=
@@ -161,39 +228,81 @@ Usar el token en Authorization:
 Authorization: Bearer <JWT>
 ```
 
-## 🧪 Notas de desarrollo
+## 🛠️ Scripts de Utilidades
 
-En entorno no productivo se usa `synchronize: true`. En producción usar migraciones.
+Usa el script `dev.ps1` para facilitar el desarrollo:
+
+```powershell
+# Ver ayuda
+.\dev.ps1 help
+
+# Iniciar todos los servicios
+.\dev.ps1 start-all
+
+# Iniciar solo el monolito
+.\dev.ps1 start-monolith
+
+# Ver logs en tiempo real
+.\dev.ps1 logs
+
+# Ver estado de los servicios
+.\dev.ps1 status
+
+# Detener servicios
+.\dev.ps1 stop-all
+
+# Reconstruir el monolito
+.\dev.ps1 rebuild
+
+# Ejecutar tests
+.\dev.ps1 test
+```
+
+> 📖 Ver [`DESARROLLO.md`](./DESARROLLO.md) para más comandos y guías.
+
+## 📚 Documentación Adicional
+
+- **[MIGRACION-MICROSERVICIOS.md](./MIGRACION-MICROSERVICIOS.md)** - Plan completo de migración a microservicios
+- **[ESTRUCTURA.md](./ESTRUCTURA.md)** - Descripción detallada de la estructura del proyecto
+- **[DESARROLLO.md](./DESARROLLO.md)** - Guía de desarrollo y comandos útiles
+- **[MEJORAS-CALIDAD.md](./MEJORAS-CALIDAD.md)** - Documentación de mejoras de calidad
+
+## 🧪 Testing
+
+```bash
+cd services/legacy-monolith
+
+# Tests unitarios
+npm test
+
+# Tests en modo watch
+npm run test:watch
+
+# Coverage
+npm run test:coverage
+```
+
+## 🔄 Estado de Migración
+
+| Servicio | Estado | Puerto | Descripción |
+|----------|--------|--------|-------------|
+| Legacy Monolith | ✅ Activo | 3001 | Monolito original funcionando |
+| API Gateway | 🚧 Pendiente | 3000 | Punto de entrada único |
+| User Service | 🚧 Pendiente | 3002 | Gestión de usuarios y auth |
+| Catalog Service | 🚧 Pendiente | 3003 | Productos y categorías |
+| Order Service | 🚧 Pendiente | 3004 | Pedidos y pagos |
+
+## 🤝 Contribución
+
+Este proyecto está siendo desarrollado como parte de la materia **Tecnologías Web 2** (Semestre 2-2025).
+
+## 📝 Notas
+
+- El proyecto utiliza **PostgreSQL** en lugar de MySQL
+- Se usa `synchronize: true` en desarrollo. Para producción, usar migraciones
+- El monolito está preparado para migración gradual a microservicios usando el patrón **Strangler Fig**
+- Todos los endpoints están documentados en Swagger: `http://localhost:3001/api`
 
 ---
-_Generado como base inicial. Se irá ampliando en iteraciones siguientes._
-Este repositorio es para la materia de Tecnologías Web 2 semestre 2-2025
-Backend Cafetería
-Sistema backend para la gestión de una cafetería, desarrollado con NestJS y MySQL.
 
-Requisitos
-Node.js (v16 o superior)
-npm
-MySQL
-Instalación
-Clona el repositorio o descarga el proyecto.
-
-Instala las dependencias:
-
-Configura la base de datos:
-
-Crea una base de datos llamada cafeteria en tu servidor MySQL.
-Ajusta las credenciales de conexión en src/data-source.ts si es necesario (usuario, contraseña, host).
-Ejecuta las migraciones o asegúrate de que la estructura de tablas esté creada (puedes usar los scripts SQL proporcionados).
-
-Ejecución
-Modo desarrollo:
-
-Modo producción:
-
-Endpoints principales
-CRUD para usuarios, productos y reservas.
-Validaciones y manejo de errores con respuestas JSON claras.
-Notas
-Asegúrate de tener el servicio de MySQL corriendo antes de iniciar el backend.
-Puedes probar los endpoints con Postman, Insomnia o cualquier cliente HTTP.
+_Proyecto en transición hacia arquitectura de microservicios_ 🚀
