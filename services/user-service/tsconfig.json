@@ -20,7 +20,8 @@
       "@config/*": ["src/config/*"],
       "@modules/*": ["src/modules/*"],
       "@products/*": ["src/modules/products/*"],
-      "@categories/*": ["src/modules/categories/*"]
+      "@categories/*": ["src/modules/categories/*"],
+      "@shared/*": ["../../shared/*"]
     }
   },
   "exclude": ["node_modules", "dist"]

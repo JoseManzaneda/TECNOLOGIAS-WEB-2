@@ -50,13 +50,38 @@ export class PuntosService {
       throw new ConflictException(`El usuario "${usuario.nombre}" ya tiene un registro de puntos`);
     }
 
-    // Crear y guardar el nuevo registro de puntos
-    const nuevosPuntos = this.puntosRepository.create(createDto);
-    return await this.puntosRepository.save(nuevosPuntos);
+    const nuevoRegistro = this.puntosRepository.create({
+      userId: createDto.userId,
+      puntosAcumulados: createDto.puntosAcumulados,
+      ultimaActualizacion: new Date(),
+    });
+
+    return this.puntosRepository.save(nuevoRegistro);
   }
 
   /**
-   * Obtener todos los registros de puntos
+   * Crea un registro de puntos inicial para un nuevo usuario con 0 puntos.
+   * Este método es llamado por un evento cuando un usuario se registra.
+   * @param userId - ID del usuario para el que se crea el registro de puntos.
+   * @returns Promise<Puntos>
+   * @throws NotFoundException si el usuario no existe.
+   */
+  async crearPuntosParaNuevoUsuario(userId: number): Promise<Puntos> {
+    const puntosExistentes = await this.puntosRepository.findOne({ where: { userId } });
+    if (puntosExistentes) {
+      // Opcional: loggear que ya existían
+      return puntosExistentes;
+    }
+    const nuevoRegistro = this.puntosRepository.create({
+      userId,
+      puntosAcumulados: 0,
+      ultimaActualizacion: new Date(),
+    });
+    return this.puntosRepository.save(nuevoRegistro);
+  }
+
+  /**
+   * Obtener todos los registros de puntos (solo para admin)
    * @param currentUser - Usuario actual (debe ser admin)
    * @returns Promise<Puntos[]>
    * @throws ForbiddenException si no es admin

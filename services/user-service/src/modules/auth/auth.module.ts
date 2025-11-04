@@ -7,6 +7,8 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { AuthController } from './auth.controller';
 
+import { EventsModule } from '../../events/events.module';
+
 @Module({
   imports: [
     UsersModule,
@@ -18,6 +20,7 @@ import { AuthController } from './auth.controller';
         signOptions: { expiresIn: config.get<string>('jwt.expiresIn') },
       }),
     }),
+    EventsModule,
   ],
   providers: [AuthService, JwtStrategy],
   controllers: [AuthController],

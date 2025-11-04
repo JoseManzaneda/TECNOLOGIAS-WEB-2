@@ -5,6 +5,7 @@ import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { ResponseFormatInterceptor } from './common/interceptors/response-format.interceptor';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -13,6 +14,14 @@ async function bootstrap() {
   );
 
   app.setGlobalPrefix('api');
+
+  // Conectar el microservicio para escuchar eventos
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.REDIS,
+    options: {
+      url: process.env.REDIS_URL || 'redis://localhost:6379',
+    },
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -35,6 +44,8 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
+  await app.startAllMicroservices();
+  
   const port = process.env.PORT || 3000;
   await app.listen(port as number, '0.0.0.0');
   console.log(`🚀 Servidor escuchando en http://localhost:${port}/api`);

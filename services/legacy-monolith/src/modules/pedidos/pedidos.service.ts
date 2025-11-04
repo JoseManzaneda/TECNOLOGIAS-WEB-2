@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { MetodoPago } from '../../common/enums/metodo-pago.enum';
@@ -7,9 +7,13 @@ import { PedidoDetalle } from './entities/pedido-detalle.entity';
 import { Product } from '../products/entities/product.entity';
 import { CreatePedidoDto } from './dto/create-pedido.dto';
 import { UpdatePedidoDto } from './dto/update-pedido.dto';
+import { UserServiceClient } from './user-service.client';
+import { CatalogServiceClient } from './catalog-service.client';
 
 @Injectable()
 export class PedidosService {
+  private readonly logger = new Logger(PedidosService.name);
+
   constructor(
   @InjectRepository(Pedido)
   private readonly pedidoRepo: Repository<Pedido>,
@@ -17,26 +21,61 @@ export class PedidosService {
     private readonly pedidoDetalleRepo: Repository<PedidoDetalle>,
     @InjectRepository(Product)
     private readonly productRepo: Repository<Product>,
-    private readonly dataSource: DataSource
+    private readonly dataSource: DataSource,
+    private readonly userServiceClient: UserServiceClient,
+    private readonly catalogServiceClient: CatalogServiceClient,
   ) {}
 
   async create(dto: CreatePedidoDto, userId: number) {
+    // Validar que el usuario existe en User Service
+    this.logger.log(`Validating user ${userId} with User Service...`);
+    const userExists = await this.userServiceClient.validateUserExists(userId);
+    
+    if (!userExists) {
+      throw new NotFoundException(`Usuario con ID ${userId} no existe`);
+    }
+    
     // Validaciones básicas
     if (!dto.detalles || dto.detalles.length === 0) {
       throw new BadRequestException('El pedido debe incluir al menos un producto');
     }
 
+    // Validar productos con Catalog Service
+    this.logger.log(`Validating products with Catalog Service...`);
+    const productIds = dto.detalles.map(d => d.idProducto);
+    const productInfoMap = await this.catalogServiceClient.validateProductsExist(productIds);
+    
+    // Verificar que todos los productos existen
+    const missingProducts = productIds.filter(id => {
+      const info = productInfoMap.get(id);
+      return !info || !info.exists;
+    });
+    
+    if (missingProducts.length > 0) {
+      throw new BadRequestException(`Productos no encontrados: ${missingProducts.join(', ')}`);
+    }
+    
+    // Verificar disponibilidad y stock
+    for (const detalle of dto.detalles) {
+      const productInfo = productInfoMap.get(detalle.idProducto);
+      
+      if (!productInfo?.disponible) {
+        throw new BadRequestException(`Producto ${productInfo?.nombre || detalle.idProducto} no está disponible`);
+      }
+      
+      if (productInfo.stock! < detalle.cantidad) {
+        throw new BadRequestException(
+          `Stock insuficiente para ${productInfo.nombre}. Disponible: ${productInfo.stock}, Solicitado: ${detalle.cantidad}`
+        );
+      }
+    }
+
     // Usar transacción para garantizar integridad
     return await this.dataSource.transaction(async manager => {
-      // Verificar que todos los productos existen y están disponibles
-      const productIds = dto.detalles.map(d => d.idProducto);
+      // Ya no necesitamos buscar productos localmente, usamos info del Catalog Service
       const productos = await manager.find(Product, { 
         where: productIds.map(id => ({ id })) 
       });
-      
-      if (productos.length !== productIds.length) {
-        throw new BadRequestException('Uno o más productos no existen');
-      }
 
       // Verificar disponibilidad y stock
       for (const detalle of dto.detalles) {

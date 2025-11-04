@@ -10,7 +10,10 @@ async function bootstrap() {
     new FastifyAdapter({ logger: true }),
   );
 
-  app.setGlobalPrefix('api');
+  // Excluir rutas internas del prefijo global /api
+  app.setGlobalPrefix('api', {
+    exclude: ['internal/(.*)'],
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({

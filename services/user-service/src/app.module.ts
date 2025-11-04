@@ -6,6 +6,7 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DireccionesModule } from './modules/direcciones/direcciones.module';
 import { PuntosModule } from './modules/puntos/puntos.module';
+import { EventsModule } from './events/events.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { PuntosModule } from './modules/puntos/puntos.module';
     AuthModule,
     DireccionesModule,
     PuntosModule,
+    EventsModule,
   ],
 })
 export class AppModule {}

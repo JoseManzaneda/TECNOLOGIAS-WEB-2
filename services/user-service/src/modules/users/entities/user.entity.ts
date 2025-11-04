@@ -1,7 +1,6 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { Product } from '../../products/entities/product.entity';
 import { Direccion } from '../../direcciones/entities/direccion.entity';
-// Relaciones futuras: pedidos, direcciones, puntos, reservas.
+// Relaciones futuras: pedidos, puntos, reservas.
 
 export type UserRole = 'cliente' | 'admin';
 

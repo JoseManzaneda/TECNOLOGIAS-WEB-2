@@ -1,0 +1,33 @@
+{
+  "name": "catalog-service",
+  "version": "1.0.0",
+  "description": "Catalog Service - Gestión de productos, categorías e ingredientes",
+  "scripts": {
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:prod": "node dist/main.js",
+    "build": "nest build"
+  },
+  "dependencies": {
+    "@fastify/static": "^6.12.0",
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/config": "^3.3.0",
+    "@nestjs/core": "^10.0.0",
+    "@nestjs/mapped-types": "^2.0.2",
+    "@nestjs/microservices": "^10.3.10",
+    "@nestjs/platform-fastify": "^10.0.0",
+    "@nestjs/swagger": "^7.4.2",
+    "@nestjs/typeorm": "^10.0.2",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.0",
+    "pg": "^8.16.3",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.8.1",
+    "typeorm": "^0.3.27"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^10.3.2",
+    "@types/node": "^20.11.30",
+    "typescript": "^5.4.2"
+  }
+}

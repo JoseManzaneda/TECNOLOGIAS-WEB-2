@@ -5,10 +5,15 @@ import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
+import { EventService } from '../../events/event.service';
+import { UserRegisteredEvent } from '@shared/events/user.events';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectRepository(User) private readonly userRepo: Repository<User>) {}
+  constructor(
+    @InjectRepository(User) private readonly userRepo: Repository<User>,
+    private readonly eventService: EventService,
+  ) {}
 
   private sanitize(user: User) {
     const { passwordHash, ...rest } = user;
@@ -27,6 +32,12 @@ export class UsersService {
       rol: dto.rol ?? 'cliente',
     });
     const saved = await this.userRepo.save(user);
+
+    // Emitir evento
+    this.eventService.emitUserRegistered(
+      new UserRegisteredEvent(saved.id, saved.email, saved.nombre)
+    );
+
     return this.sanitize(saved);
   }
 

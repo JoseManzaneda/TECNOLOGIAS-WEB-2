@@ -14,6 +14,7 @@ import { IngredientesModule } from './modules/ingredientes/ingredientes.module';
 import { ProductoIngredientesModule } from './modules/producto-ingredientes/producto-ingredientes.module';
 import { PuntosModule } from './modules/puntos/puntos.module';
 import { ReservasModule } from './modules/reservas/reservas.module';
+import { EventsModule } from './events/events.module';
 
 @Controller()
 class AppController {
@@ -85,6 +86,7 @@ class AppController {
     ProductoIngredientesModule,
     PuntosModule,
     ReservasModule,
+    EventsModule,
   ],
   controllers: [AppController],
 })
