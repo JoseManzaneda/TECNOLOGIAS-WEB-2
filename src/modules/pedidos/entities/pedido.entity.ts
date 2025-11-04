@@ -1,5 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany, CreateDateColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+import { MetodoPago } from '../../../common/enums/metodo-pago.enum';
+
+export { MetodoPago };
 
 export enum EstadoPedido {
   PENDIENTE = 'pendiente',
@@ -9,15 +12,9 @@ export enum EstadoPedido {
   CANCELADO = 'cancelado',
 }
 
-export enum MetodoPago {
-  TARJETA = 'tarjeta',
-  QR = 'qr',
-  EFECTIVO = 'efectivo',
-}
-
 @Entity('pedidos')
 export class Pedido {
-  @PrimaryGeneratedColumn({ name: 'id_pedido' })
+    @PrimaryGeneratedColumn({ name: 'id_pedido' })
   id!: number;
 
   @Column({ name: 'id_usuario', nullable: true })
@@ -30,6 +27,7 @@ export class Pedido {
     name: 'estado',
     type: 'enum',
     enum: EstadoPedido,
+    enumName: 'estado_pedido_enum',
     default: EstadoPedido.PENDIENTE,
   })
   estado!: EstadoPedido;
@@ -38,6 +36,7 @@ export class Pedido {
     name: 'metodo_pago',
     type: 'enum',
     enum: MetodoPago,
+    enumName: 'metodo_pago_enum',
     default: MetodoPago.EFECTIVO,
   })
   metodoPago!: MetodoPago;

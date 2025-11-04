@@ -11,6 +11,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PedidosService } from './pedidos.service';
 import { CreatePedidoDto } from './dto/create-pedido.dto';
 import { UpdatePedidoDto } from './dto/update-pedido.dto';
@@ -30,6 +31,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
  * - PATCH /api/pedidos/:id - Actualizar estado de pedido (admin puede todo, cliente solo cancelar propio)
  * - DELETE /api/pedidos/:id - Eliminar pedido (solo admin)
  */
+@ApiTags('pedidos')
+@ApiBearerAuth()
 @Controller('pedidos')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class PedidosController {
@@ -38,6 +41,10 @@ export class PedidosController {
   /**
    * Crear nuevo pedido
    * 
+   * El usuario autenticado se extrae automáticamente del token JWT.
+   * El total se calcula automáticamente sumando (cantidad * precioUnitario) de cada detalle.
+   * Si no se proporciona precioUnitario, se usa el precio actual del producto.
+   * 
    * @example
    * POST /api/pedidos
    * Authorization: Bearer <JWT_TOKEN>
@@ -45,12 +52,14 @@ export class PedidosController {
    *   "metodoPago": "tarjeta",
    *   "detalles": [
    *     {
-   *       "productoId": 1,
-   *       "cantidad": 2
+   *       "idProducto": 1,
+   *       "cantidad": 2,
+   *       "precioUnitario": 25.50
    *     },
    *     {
-   *       "productoId": 3,
-   *       "cantidad": 1
+   *       "idProducto": 3,
+   *       "cantidad": 1,
+   *       "precioUnitario": 15.00
    *     }
    *   ]
    * }

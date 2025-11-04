@@ -11,6 +11,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { DireccionesService } from './direcciones.service';
 import { CreateDireccionDto } from './dto/create-direccion.dto';
 import { UpdateDireccionDto } from './dto/update-direccion.dto';
@@ -29,6 +30,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
  * - PATCH /api/direcciones/:id - Actualizar dirección (admin o propietario)
  * - DELETE /api/direcciones/:id - Eliminar dirección (admin o propietario)
  */
+@ApiTags('direcciones')
+@ApiBearerAuth()
 @Controller('direcciones')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class DireccionesController {

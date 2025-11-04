@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, Put, HttpCode, UseGuards, HttpStatus } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -17,6 +18,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
  * - PUT /api/products/:id - Reemplazar producto (solo admin)
  * - DELETE /api/products/:id - Eliminar producto (solo admin)
  */
+@ApiTags('products')
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
@@ -59,6 +61,7 @@ export class ProductsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
   @Roles('admin')
   create(@Body() dto: CreateProductDto) {
     return this.productsService.create(dto);
@@ -139,6 +142,7 @@ export class ProductsController {
    */
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
   @Roles('admin')
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateProductDto) {
     return this.productsService.update(id, dto);
@@ -162,6 +166,7 @@ export class ProductsController {
    */
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
   @Roles('admin')
   replace(@Param('id', ParseIntPipe) id: number, @Body() dto: CreateProductDto) {
     return this.productsService.replace(id, dto);
@@ -186,6 +191,7 @@ export class ProductsController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
   @Roles('admin')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.productsService.remove(id);

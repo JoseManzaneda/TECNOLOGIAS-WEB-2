@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe, Put, HttpCode, UseGuards, Request } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -10,7 +11,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
  * Controlador de usuarios
  * 
  * Endpoints disponibles:
- * - POST /api/users - Crear usuario (solo admin)
+ * - POST /api/users - Crear usuario (público)
  * - GET /api/users - Listar usuarios (solo admin)
  * - GET /api/users/profile - Obtener perfil del usuario autenticado
  * - GET /api/users/:id - Obtener usuario por ID (admin o el mismo usuario)
@@ -18,17 +19,16 @@ import { Roles } from '../../common/decorators/roles.decorator';
  * - PUT /api/users/:id - Reemplazar usuario (admin o el mismo usuario)
  * - DELETE /api/users/:id - Eliminar usuario (solo admin)
  */
+@ApiTags('users')
 @Controller('users')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   /**
-   * Crear nuevo usuario (solo administradores)
+   * Crear nuevo usuario (público)
    * 
    * @example
    * POST /api/users
-   * Authorization: Bearer <JWT_TOKEN>
    * {
    *   "nombre": "Juan Pérez",
    *   "email": "juan@example.com",
@@ -39,7 +39,6 @@ export class UsersController {
    */
   @Post()
   @HttpCode(201)
-  @Roles('admin')
   create(@Body() dto: CreateUserDto) {
     return this.usersService.create(dto);
   }
@@ -52,6 +51,8 @@ export class UsersController {
    * Authorization: Bearer <JWT_TOKEN>
    */
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
   @Roles('admin')
   findAll() {
     return this.usersService.findAll();
@@ -65,6 +66,8 @@ export class UsersController {
    * Authorization: Bearer <JWT_TOKEN>
    */
   @Get('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   getProfile(@Request() req: any) {
     return this.usersService.findOne(req.user.id);
   }
@@ -77,6 +80,8 @@ export class UsersController {
    * Authorization: Bearer <JWT_TOKEN>
    */
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   findOne(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
     return this.usersService.findOne(id, req.user);
   }
@@ -92,6 +97,8 @@ export class UsersController {
    * }
    */
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateUserDto, @Request() req: any) {
     return this.usersService.update(id, dto, req.user);
   }
@@ -110,6 +117,8 @@ export class UsersController {
    * }
    */
   @Put(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   replace(@Param('id', ParseIntPipe) id: number, @Body() dto: CreateUserDto, @Request() req: any) {
     return this.usersService.replace(id, dto, req.user);
   }
@@ -123,6 +132,8 @@ export class UsersController {
    */
   @Delete(':id')
   @HttpCode(200)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
   @Roles('admin')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.remove(id);

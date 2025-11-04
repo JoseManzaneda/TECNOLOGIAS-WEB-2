@@ -33,10 +33,10 @@ export class ProductsService {
       disponible: dto.disponible ?? true,
     });
 
-    if (dto.categoryId) {
-      const category = await this.categoryRepo.findOne({ where: { id: dto.categoryId } });
+    if (dto.id_categoria) {
+      const category = await this.categoryRepo.findOne({ where: { id: dto.id_categoria } });
       if (!category) {
-        throw new NotFoundException(`Categoría con ID ${dto.categoryId} no encontrada`);
+        throw new NotFoundException(`Categoría con ID ${dto.id_categoria} no encontrada`);
       }
       product.categoria = category;
     }
@@ -67,12 +67,12 @@ export class ProductsService {
       throw new BadRequestException('El stock no puede ser negativo');
     }
 
-    if (dto.categoryId !== undefined) {
-      if (dto.categoryId === null) {
+    if (dto.id_categoria !== undefined) {
+      if (dto.id_categoria === null) {
         product.categoria = null;
       } else {
-        const category = await this.categoryRepo.findOne({ where: { id: dto.categoryId } });
-        if (!category) throw new NotFoundException(`Categoría ${dto.categoryId} no encontrada`);
+        const category = await this.categoryRepo.findOne({ where: { id: dto.id_categoria } });
+        if (!category) throw new NotFoundException(`Categoría ${dto.id_categoria} no encontrada`);
         product.categoria = category;
       }
     }
@@ -97,8 +97,8 @@ export class ProductsService {
     product.imagenUrl = dto.imagenUrl;
     product.stock = dto.stock ?? 0;
     product.disponible = dto.disponible ?? true;
-    if (dto.categoryId) {
-      const category = await this.categoryRepo.findOne({ where: { id: dto.categoryId } });
+    if (dto.id_categoria) {
+      const category = await this.categoryRepo.findOne({ where: { id: dto.id_categoria } });
       if (category) product.categoria = category; else product.categoria = null;
     } else {
       product.categoria = null;

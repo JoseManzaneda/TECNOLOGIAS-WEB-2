@@ -3,7 +3,7 @@ import { Category } from '../../categories/entities/category.entity';
 
 @Entity({ name: 'productos' })
 export class Product {
-  @PrimaryGeneratedColumn({ name: 'id_producto', type: 'int' })
+  @PrimaryGeneratedColumn({ name: 'id_producto' })
   id!: number;
 
   @Column({ type: 'varchar', length: 100 })
@@ -21,7 +21,7 @@ export class Product {
   @Column({ type: 'int', default: 0 })
   stock!: number;
 
-  @Column({ type: 'tinyint', width: 1, default: 1 })
+  @Column({ type: 'boolean', default: true })
   disponible!: boolean;
 
   @ManyToOne(() => Category, (category) => category.productos, { nullable: true, onDelete: 'SET NULL' })

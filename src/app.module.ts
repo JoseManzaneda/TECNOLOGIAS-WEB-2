@@ -52,20 +52,26 @@ class AppController {
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [configuration],
+      envFilePath: '.env',
+    }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        type: 'mysql',
-        host: config.get<string>('database.host'),
-        port: config.get<number>('database.port'),
-        username: config.get<string>('database.user'),
-        password: config.get<string>('database.password'),
-        database: config.get<string>('database.name'),
-        autoLoadEntities: true,
-        synchronize: config.get<string>('app.env') !== 'production',
-        logging: config.get<string>('app.env') !== 'production',
-        charset: 'utf8mb4_general_ci',
+        type: 'postgres',
+        host: config.get<string>('DATABASE_HOST'),
+        port: config.get<number>('DATABASE_PORT'),
+        username: config.get<string>('POSTGRES_USER'),
+        password: config.get<string>('POSTGRES_PASSWORD'),
+        database: config.get<string>('POSTGRES_DB'),
+  autoLoadEntities: true,
+  // Desactivar synchronize para evitar que TypeORM intente alterar enums/tipos
+  // en una base de datos gestionada por Docker/init scripts. Usar migraciones
+  // para cambios de esquema.
+  synchronize: false,
+  logging: config.get<string>('APP_ENV') !== 'production',
       }),
     }),
     CategoriesModule,

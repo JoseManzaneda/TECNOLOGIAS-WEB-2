@@ -10,6 +10,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -31,6 +32,8 @@ import { UpdateProductoIngredienteDto } from './dto/update-producto-ingrediente.
  * - PATCH /producto-ingredientes/:productoId/:ingredienteId - Actualizar relación (solo admin)
  * - DELETE /producto-ingredientes/:productoId/:ingredienteId - Eliminar relación (solo admin)
  */
+@ApiTags('producto-ingredientes')
+@ApiBearerAuth()
 @Controller('producto-ingredientes')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ProductoIngredientesController {
@@ -99,6 +102,39 @@ export class ProductoIngredientesController {
    */
   @Post('multiple/:productoId')
   @Roles('admin')
+  @ApiBody({
+    description: 'Lista de ingredientes con sus cantidades para asociar al producto',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          ingredienteId: {
+            type: 'number',
+            description: 'ID del ingrediente',
+            example: 2
+          },
+          cantidad: {
+            type: 'number',
+            description: 'Cantidad del ingrediente (opcional)',
+            example: 50,
+            nullable: true
+          }
+        },
+        required: ['ingredienteId']
+      }
+    },
+    examples: {
+      ejemploMultiple: {
+        summary: 'Asociar múltiples ingredientes',
+        value: [
+          { ingredienteId: 2, cantidad: 50 },
+          { ingredienteId: 5, cantidad: 200 },
+          { ingredienteId: 8 }
+        ]
+      }
+    }
+  })
   createMultiple(
     @Param('productoId', ParseIntPipe) productoId: number,
     @Body() ingredientesData: Array<{ ingredienteId: number; cantidad?: number }>,

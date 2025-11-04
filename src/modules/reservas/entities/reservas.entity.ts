@@ -3,9 +3,7 @@ import {
   PrimaryGeneratedColumn, 
   Column, 
   ManyToOne, 
-  JoinColumn,
-  CreateDateColumn,
-  UpdateDateColumn
+  JoinColumn
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
@@ -88,28 +86,13 @@ export class Reservas {
   @Column({
     type: 'enum',
     enum: ['pendiente', 'confirmada', 'cancelada'],
+    enumName: 'estado_reserva_enum',
     default: 'pendiente',
     comment: 'Estado de la reserva: pendiente, confirmada o cancelada'
   })
   estado!: 'pendiente' | 'confirmada' | 'cancelada';
 
-  /**
-   * Fecha y hora de creación del registro
-   */
-  @CreateDateColumn({ 
-    name: 'fecha_creacion',
-    comment: 'Fecha y hora de creación de la reserva' 
-  })
-  fechaCreacion!: Date;
-
-  /**
-   * Fecha y hora de la última actualización
-   */
-  @UpdateDateColumn({ 
-    name: 'fecha_actualizacion',
-    comment: 'Fecha y hora de la última actualización' 
-  })
-  fechaActualizacion!: Date;
+  // Notas: la tabla 'reservas' no define columnas de auditoría de creación/actualización.
 
   /**
    * Relación Many-to-One con User

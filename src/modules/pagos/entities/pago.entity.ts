@@ -1,10 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
-
-export enum MetodoPago {
-  TARJETA = 'tarjeta',
-  QR = 'qr',
-  EFECTIVO = 'efectivo',
-}
+import { MetodoPago } from '../../../common/enums/metodo-pago.enum';
 
 export enum EstadoPago {
   PENDIENTE = 'pendiente',
@@ -27,6 +22,7 @@ export class Pago {
     name: 'metodo',
     type: 'enum',
     enum: MetodoPago,
+    enumName: 'metodo_pago_enum',
     nullable: true,
   })
   metodo!: MetodoPago;
@@ -38,6 +34,7 @@ export class Pago {
     name: 'estado',
     type: 'enum',
     enum: EstadoPago,
+    enumName: 'estado_pago_enum',
     default: EstadoPago.PENDIENTE,
   })
   estado!: EstadoPago;

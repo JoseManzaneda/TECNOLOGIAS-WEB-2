@@ -18,7 +18,7 @@ export class UsersService {
   async create(dto: CreateUserDto) {
     const exists = await this.userRepo.findOne({ where: { email: dto.email } });
     if (exists) throw new ConflictException('Email ya registrado');
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const passwordHash = await bcrypt.hash(dto.contrasena, 10);
     const user = this.userRepo.create({
       nombre: dto.nombre,
       email: dto.email,
@@ -73,7 +73,7 @@ export class UsersService {
     if (dto.nombre !== undefined) user.nombre = dto.nombre;
     if (dto.telefono !== undefined) user.telefono = dto.telefono;
     if (dto.rol !== undefined) user.rol = dto.rol;
-    if (dto.password) user.passwordHash = await bcrypt.hash(dto.password, 10);
+    if (dto.contrasena) user.passwordHash = await bcrypt.hash(dto.contrasena, 10);
 
     const saved = await this.userRepo.save(user);
     return this.sanitize(saved);
@@ -101,7 +101,7 @@ export class UsersService {
     user.nombre = dto.nombre;
     user.telefono = dto.telefono;
     user.rol = dto.rol ?? user.rol;
-    user.passwordHash = await bcrypt.hash(dto.password, 10);
+    user.passwordHash = await bcrypt.hash(dto.contrasena, 10);
     const saved = await this.userRepo.save(user);
     return this.sanitize(saved);
   }

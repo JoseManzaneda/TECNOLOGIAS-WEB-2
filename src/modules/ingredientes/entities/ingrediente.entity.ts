@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 
 @Entity('ingredientes')
 export class Ingrediente {
-  @PrimaryGeneratedColumn({ name: 'id_ingrediente' })
+    @PrimaryGeneratedColumn({ name: 'id_ingrediente' })
   id!: number;
 
   @Column({ 

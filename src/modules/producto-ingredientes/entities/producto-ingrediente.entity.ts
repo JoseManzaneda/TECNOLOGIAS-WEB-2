@@ -1,4 +1,4 @@
-import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Product } from '../../products/entities/product.entity';
 import { Ingrediente } from '../../ingredientes/entities/ingrediente.entity';
 
@@ -19,11 +19,8 @@ export class ProductoIngrediente {
   })
   cantidad?: number;
 
-  @CreateDateColumn({ name: 'fecha_creacion' })
-  fechaCreacion!: Date;
-
-  @UpdateDateColumn({ name: 'fecha_actualizacion' })
-  fechaActualizacion!: Date;
+  // Notas: la tabla 'producto_ingredientes' en Postgres no tiene columnas de auditoría
+  // como fecha_creacion o fecha_actualizacion. Se omiten para alinear con el esquema.
 
   // Relaciones
   @ManyToOne(() => Product, { onDelete: 'CASCADE' })

@@ -12,6 +12,7 @@ import {
   ParseIntPipe,
   HttpStatus,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ReservasService } from './reservas.service';
 import { CreateReservasDto } from './dto/create-reservas.dto';
 import { UpdateReservasDto } from './dto/update-reservas.dto';
@@ -37,6 +38,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
  * 
  * Base URL: /api/reservas
  */
+@ApiTags('reservas')
+@ApiBearerAuth()
 @Controller('reservas')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ReservasController {
@@ -112,6 +115,19 @@ export class ReservasController {
    */
   @Get()
   @Roles('admin', 'cliente')
+  @ApiQuery({ 
+    name: 'estado', 
+    required: false, 
+    enum: ['pendiente', 'confirmada', 'cancelada'],
+    description: 'Filtrar por estado de la reserva'
+  })
+  @ApiQuery({ 
+    name: 'fecha', 
+    required: false, 
+    type: String,
+    description: 'Filtrar por fecha (formato YYYY-MM-DD)',
+    example: '2025-11-10'
+  })
   async findAll(
     @Request() req: any,
     @Query('estado') estado?: string,
@@ -154,6 +170,12 @@ export class ReservasController {
    */
   @Get('mis-reservas')
   @Roles('cliente', 'admin')
+  @ApiQuery({ 
+    name: 'estado', 
+    required: false, 
+    enum: ['pendiente', 'confirmada', 'cancelada'],
+    description: 'Filtrar por estado de la reserva'
+  })
   async getMisReservas(
     @Request() req: any,
     @Query('estado') estado?: string,

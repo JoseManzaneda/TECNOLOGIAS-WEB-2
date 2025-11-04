@@ -1,4 +1,5 @@
 import { IsNotEmpty, IsString, IsIn, IsOptional } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 /**
  * DTO para cambiar el estado de una reserva
@@ -27,6 +28,11 @@ export class CambiarEstadoReservaDto {
    * 
    * @example "confirmada"
    */
+  @ApiProperty({
+    description: 'Nuevo estado de la reserva',
+    enum: ['confirmada', 'cancelada'],
+    example: 'confirmada'
+  })
   @IsNotEmpty({ message: 'El estado es obligatorio' })
   @IsString({ message: 'El estado debe ser una cadena de texto' })
   @IsIn(['confirmada', 'cancelada'], { 
@@ -41,6 +47,11 @@ export class CambiarEstadoReservaDto {
    * @example "Mesa no disponible para esa fecha"
    * @example "El cliente canceló por cambio de planes"
    */
+  @ApiProperty({
+    description: 'Motivo del cambio de estado (opcional)',
+    example: 'Mesa confirmada para 4 personas',
+    required: false
+  })
   @IsOptional()
   @IsString({ message: 'El motivo debe ser una cadena de texto' })
   motivo?: string;

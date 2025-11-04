@@ -1,5 +1,6 @@
 import { IsEnum, IsOptional } from 'class-validator';
-import { EstadoPedido, MetodoPago } from '../entities/pedido.entity';
+import { EstadoPedido } from '../entities/pedido.entity';
+import { MetodoPago } from '../../../common/enums/metodo-pago.enum';
 
 export class UpdatePedidoDto {
   @IsOptional()

@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { Pedido, EstadoPedido, MetodoPago } from './entities/pedido.entity';
+import { MetodoPago } from '../../common/enums/metodo-pago.enum';
+import { Pedido, EstadoPedido } from './entities/pedido.entity';
 import { PedidoDetalle } from './entities/pedido-detalle.entity';
 import { Product } from '../products/entities/product.entity';
 import { CreatePedidoDto } from './dto/create-pedido.dto';
@@ -10,8 +11,8 @@ import { UpdatePedidoDto } from './dto/update-pedido.dto';
 @Injectable()
 export class PedidosService {
   constructor(
-    @InjectRepository(Pedido)
-    private readonly pedidoRepo: Repository<Pedido>,
+  @InjectRepository(Pedido)
+  private readonly pedidoRepo: Repository<Pedido>,
     @InjectRepository(PedidoDetalle)
     private readonly pedidoDetalleRepo: Repository<PedidoDetalle>,
     @InjectRepository(Product)
@@ -28,7 +29,7 @@ export class PedidosService {
     // Usar transacción para garantizar integridad
     return await this.dataSource.transaction(async manager => {
       // Verificar que todos los productos existen y están disponibles
-      const productIds = dto.detalles.map(d => d.productoId);
+      const productIds = dto.detalles.map(d => d.idProducto);
       const productos = await manager.find(Product, { 
         where: productIds.map(id => ({ id })) 
       });
@@ -43,7 +44,7 @@ export class PedidosService {
           throw new BadRequestException('La cantidad debe ser mayor a 0');
         }
         
-        const producto = productos.find(p => p.id === detalle.productoId);
+        const producto = productos.find(p => p.id === detalle.idProducto);
         if (!producto?.disponible) {
           throw new BadRequestException(`El producto ${producto?.nombre} no está disponible`);
         }
@@ -66,15 +67,18 @@ export class PedidosService {
       const detalles = [];
 
       for (const detalleDto of dto.detalles) {
-        const producto = productos.find(p => p.id === detalleDto.productoId)!;
-        const subtotal = producto.precio * detalleDto.cantidad;
+        const producto = productos.find(p => p.id === detalleDto.idProducto)!;
+        
+        // Usar precioUnitario del DTO si se proporciona, sino usar el precio actual del producto
+        const precioUnitario = detalleDto.precioUnitario ?? producto.precio;
+        const subtotal = precioUnitario * detalleDto.cantidad;
         total += subtotal;
 
         const detalle = manager.create(PedidoDetalle, {
           pedidoId: pedidoGuardado.id,
-          productoId: detalleDto.productoId,
+          productoId: detalleDto.idProducto,
           cantidad: detalleDto.cantidad,
-          precioUnitario: producto.precio,
+          precioUnitario: precioUnitario,
         });
 
         detalles.push(detalle);
@@ -93,7 +97,7 @@ export class PedidosService {
       // Retornar pedido completo con relaciones
       return await manager.findOne(Pedido, {
         where: { id: pedidoGuardado.id },
-        relations: ['detalles', 'detalles.producto', 'user']
+        relations: ['detalles', 'detalles.producto', 'usuario']
       });
     });
   }
@@ -268,8 +272,17 @@ export class PedidosService {
     const pedidosPendientes = await this.pedidoRepo.count({ 
       where: { estado: EstadoPedido.PENDIENTE } 
     });
+    const pedidosEnPreparacion = await this.pedidoRepo.count({
+      where: { estado: EstadoPedido.EN_PREPARACION },
+    });
+    const pedidosListos = await this.pedidoRepo.count({
+      where: { estado: EstadoPedido.LISTO },
+    });
     const pedidosEntregados = await this.pedidoRepo.count({ 
       where: { estado: EstadoPedido.ENTREGADO } 
+    });
+    const pedidosCancelados = await this.pedidoRepo.count({
+      where: { estado: EstadoPedido.CANCELADO },
     });
 
     const ventasResult = await this.pedidoRepo
@@ -281,7 +294,10 @@ export class PedidosService {
     return {
       totalPedidos,
       pedidosPendientes,
+      pedidosEnPreparacion,
+      pedidosListos,
       pedidosEntregados,
+      pedidosCancelados,
       ventasTotales: parseFloat(ventasResult?.total) || 0
     };
   }

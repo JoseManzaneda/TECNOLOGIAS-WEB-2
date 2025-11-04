@@ -57,19 +57,19 @@ export class ReservasService {
    * @throws ConflictException - Si ya existe una reserva en ese horario
    */
   async create(createReservasDto: CreateReservasDto, user: User): Promise<Reservas> {
-    const { userId, fechaReserva, hora, numPersonas, estado } = createReservasDto;
+    const { id_usuario, fecha_reserva, hora, num_personas, estado } = createReservasDto;
 
     // Verificar que el usuario existe
     const targetUser = await this.userRepository.findOne({
-      where: { id: userId },
+      where: { id: id_usuario },
     });
 
     if (!targetUser) {
-      throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
+      throw new NotFoundException(`Usuario con ID ${id_usuario} no encontrado`);
     }
 
     // Validar que solo admin puede crear reservas para otros usuarios
-    if (user.rol !== 'admin' && user.id !== userId) {
+    if (user.rol !== 'admin' && user.id !== id_usuario) {
       throw new ForbiddenException('Solo puedes crear reservas para tu propio usuario');
     }
 
@@ -79,20 +79,20 @@ export class ReservasService {
     }
 
     // Validar fecha futura
-    await this.validarFechaFutura(fechaReserva, hora);
+    await this.validarFechaFutura(fecha_reserva, hora);
 
     // Validar horario de atención
     this.validarHorarioAtencion(hora);
 
     // Validar disponibilidad (no conflictos)
-    await this.validarDisponibilidad(fechaReserva, hora, numPersonas);
+    await this.validarDisponibilidad(fecha_reserva, hora, num_personas);
 
     // Crear la reserva
     const nuevaReserva = this.reservasRepository.create({
-      userId,
-      fechaReserva,
+      userId: id_usuario,
+      fechaReserva: fecha_reserva,
       hora,
-      numPersonas,
+      numPersonas: num_personas,
       estado: estado || 'pendiente',
     });
 
@@ -121,8 +121,6 @@ export class ReservasService {
         'reservas.hora',
         'reservas.numPersonas',
         'reservas.estado',
-        'reservas.fechaCreacion',
-        'reservas.fechaActualizacion',
         'user.id',
         'user.nombre',
         'user.email',
@@ -169,8 +167,6 @@ export class ReservasService {
         'reservas.hora',
         'reservas.numPersonas',
         'reservas.estado',
-        'reservas.fechaCreacion',
-        'reservas.fechaActualizacion',
         'user.id',
         'user.nombre',
         'user.email',
@@ -207,8 +203,6 @@ export class ReservasService {
         hora: true,
         numPersonas: true,
         estado: true,
-        fechaCreacion: true,
-        fechaActualizacion: true,
         user: {
           id: true,
           nombre: true,
@@ -257,8 +251,8 @@ export class ReservasService {
     }
 
     // Si se actualiza fecha/hora, validar nuevamente
-    if (updateReservasDto.fechaReserva || updateReservasDto.hora) {
-      const nuevaFecha = updateReservasDto.fechaReserva || reserva.fechaReserva;
+    if (updateReservasDto.fecha_reserva || updateReservasDto.hora) {
+      const nuevaFecha = updateReservasDto.fecha_reserva || reserva.fechaReserva;
       const nuevaHora = updateReservasDto.hora || reserva.hora;
 
       await this.validarFechaFutura(nuevaFecha, nuevaHora);
@@ -269,7 +263,7 @@ export class ReservasService {
         await this.validarDisponibilidad(
           nuevaFecha, 
           nuevaHora, 
-          updateReservasDto.numPersonas || reserva.numPersonas,
+          updateReservasDto.num_personas || reserva.numPersonas,
           id // Excluir la reserva actual de la validación
         );
       }
@@ -280,12 +274,17 @@ export class ReservasService {
       throw new ForbiddenException('Solo los administradores pueden cambiar el estado de las reservas');
     }
 
-    if (updateReservasDto.userId && user.rol !== 'admin') {
+    if (updateReservasDto.id_usuario && user.rol !== 'admin') {
       throw new ForbiddenException('Solo los administradores pueden cambiar el usuario de las reservas');
     }
 
-    // Actualizar la reserva
-    Object.assign(reserva, updateReservasDto);
+    // Mapear los campos del DTO a la entidad
+    if (updateReservasDto.id_usuario !== undefined) reserva.userId = updateReservasDto.id_usuario;
+    if (updateReservasDto.fecha_reserva !== undefined) reserva.fechaReserva = updateReservasDto.fecha_reserva;
+    if (updateReservasDto.hora !== undefined) reserva.hora = updateReservasDto.hora;
+    if (updateReservasDto.num_personas !== undefined) reserva.numPersonas = updateReservasDto.num_personas;
+    if (updateReservasDto.estado !== undefined) reserva.estado = updateReservasDto.estado;
+
     return await this.reservasRepository.save(reserva);
   }
 
@@ -361,30 +360,49 @@ export class ReservasService {
       throw new ForbiddenException('Solo los administradores pueden ver las estadísticas');
     }
 
+    // Fecha de hoy (YYYY-MM-DD)
     const hoy = new Date().toISOString().split('T')[0];
 
-    const estadisticas = await this.reservasRepository
+    // Contadores principales (sin riesgo de mapeo de columnas)
+    const [
+      totalReservas,
+      reservasPendientes,
+      reservasConfirmadas,
+      reservasCanceladas,
+    ] = await Promise.all([
+      this.reservasRepository.count(),
+      this.reservasRepository.count({ where: { estado: 'pendiente' } }),
+      this.reservasRepository.count({ where: { estado: 'confirmada' } }),
+      this.reservasRepository.count({ where: { estado: 'cancelada' } }),
+    ]);
+
+    // Contadores por fecha usando property paths (TypeORM los resuelve correctamente en WHERE)
+    const reservasHoy = await this.reservasRepository
       .createQueryBuilder('reservas')
-      .select([
-        'COUNT(reservas.id) as totalReservas',
-        'SUM(CASE WHEN reservas.estado = "pendiente" THEN 1 ELSE 0 END) as reservasPendientes',
-        'SUM(CASE WHEN reservas.estado = "confirmada" THEN 1 ELSE 0 END) as reservasConfirmadas',
-        'SUM(CASE WHEN reservas.estado = "cancelada" THEN 1 ELSE 0 END) as reservasCanceladas',
-        'SUM(CASE WHEN reservas.fechaReserva = :hoy THEN 1 ELSE 0 END) as reservasHoy',
-        'SUM(CASE WHEN reservas.fechaReserva > :hoy THEN 1 ELSE 0 END) as reservasFuturas',
-        'AVG(reservas.numPersonas) as promedioPersonas',
-      ])
-      .setParameter('hoy', hoy)
-      .getRawOne();
+      .where('reservas.fechaReserva = :hoy', { hoy })
+      .getCount();
+
+    const reservasFuturas = await this.reservasRepository
+      .createQueryBuilder('reservas')
+      .where('reservas.fechaReserva > :hoy', { hoy })
+      .getCount();
+
+    // Promedio de personas por reserva (consultado con snake_case explícito para evitar ambigüedad)
+    const promedioRaw = await this.reservasRepository
+      .createQueryBuilder('reservas')
+      .select('AVG("num_personas")', 'avg')
+      .getRawOne<{ avg: string | null }>();
+
+    const promedioPersonasPorReserva = promedioRaw?.avg ? parseFloat(promedioRaw.avg) : 0;
 
     return {
-      totalReservas: parseInt(estadisticas.totalReservas) || 0,
-      reservasPendientes: parseInt(estadisticas.reservasPendientes) || 0,
-      reservasConfirmadas: parseInt(estadisticas.reservasConfirmadas) || 0,
-      reservasCanceladas: parseInt(estadisticas.reservasCanceladas) || 0,
-      reservasHoy: parseInt(estadisticas.reservasHoy) || 0,
-      reservasFuturas: parseInt(estadisticas.reservasFuturas) || 0,
-      promedioPersonasPorReserva: parseFloat(estadisticas.promedioPersonas) || 0,
+      totalReservas,
+      reservasPendientes,
+      reservasConfirmadas,
+      reservasCanceladas,
+      reservasHoy,
+      reservasFuturas,
+      promedioPersonasPorReserva,
     };
   }
 

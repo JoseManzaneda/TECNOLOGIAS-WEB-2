@@ -18,7 +18,7 @@ CREATE TABLE usuarios (
   nombre VARCHAR(100) NOT NULL,
   email VARCHAR(100) NOT NULL UNIQUE,
   telefono VARCHAR(20) DEFAULT NULL,
-  contraseña VARCHAR(255) NOT NULL,
+  contrasena VARCHAR(255) NOT NULL,
   rol rol_usuario_enum DEFAULT 'cliente',
   fecha_registro TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

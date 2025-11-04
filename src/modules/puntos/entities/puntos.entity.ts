@@ -1,9 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
 @Entity('puntos')
 export class Puntos {
-  @PrimaryGeneratedColumn({ name: 'id_puntos' })
+    @PrimaryGeneratedColumn({ name: 'id_puntos' })
   id!: number;
 
   @Column({ name: 'id_usuario' })
@@ -25,11 +25,7 @@ export class Puntos {
   })
   ultimaActualizacion!: Date;
 
-  @CreateDateColumn({ name: 'fecha_creacion' })
-  fechaCreacion!: Date;
-
-  @UpdateDateColumn({ name: 'fecha_actualizacion' })
-  fechaActualizacion!: Date;
+  // Notas: la tabla 'puntos' no define columnas de auditoría adicionales.
 
   // Relación con usuario
   @ManyToOne(() => User, { onDelete: 'CASCADE' })

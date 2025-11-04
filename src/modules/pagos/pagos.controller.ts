@@ -11,6 +11,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PagosService } from './pagos.service';
 import { CreatePagoDto } from './dto/create-pago.dto';
 import { UpdatePagoDto } from './dto/update-pago.dto';
@@ -31,6 +32,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
  * - PATCH /api/pagos/:id/procesar - Procesar pago (solo admin)
  * - DELETE /api/pagos/:id - Eliminar pago (solo admin)
  */
+@ApiTags('pagos')
+@ApiBearerAuth()
 @Controller('pagos')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class PagosController {

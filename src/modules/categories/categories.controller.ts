@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe, Put, HttpCode, UseGuards, HttpStatus } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -17,6 +18,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
  * - PUT /api/categories/:id - Reemplazar categoría (solo admin)
  * - DELETE /api/categories/:id - Eliminar categoría (solo admin)
  */
+@ApiTags('categories')
 @Controller('categories')
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
@@ -46,6 +48,7 @@ export class CategoriesController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
   @Roles('admin')
   create(@Body() dto: CreateCategoryDto) {
     return this.categoriesService.create(dto);
@@ -111,6 +114,7 @@ export class CategoriesController {
    */
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
   @Roles('admin')
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateCategoryDto) {
     return this.categoriesService.update(id, dto);
@@ -129,6 +133,7 @@ export class CategoriesController {
    */
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
   @Roles('admin')
   replace(@Param('id', ParseIntPipe) id: number, @Body() dto: CreateCategoryDto) {
     return this.categoriesService.replace(id, dto);
@@ -151,6 +156,7 @@ export class CategoriesController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
   @Roles('admin')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.categoriesService.remove(id);

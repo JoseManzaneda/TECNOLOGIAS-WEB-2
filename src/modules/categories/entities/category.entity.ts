@@ -3,7 +3,7 @@ import { Product } from '../../products/entities/product.entity';
 
 @Entity({ name: 'categorias' })
 export class Category {
-  @PrimaryGeneratedColumn({ name: 'id_categoria', type: 'int' })
+  @PrimaryGeneratedColumn({ name: 'id_categoria' })
   id!: number;
 
   @Column({ type: 'varchar', length: 100 })

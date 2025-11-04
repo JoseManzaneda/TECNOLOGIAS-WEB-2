@@ -11,6 +11,7 @@ import {
   Request,
   Query,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -36,6 +37,8 @@ import { CanjearPuntosDto } from './dto/canjear-puntos.dto';
  * - PATCH /puntos/:id - Actualizar registro (solo admin)
  * - DELETE /puntos/:id - Eliminar registro (solo admin)
  */
+@ApiTags('puntos')
+@ApiBearerAuth()
 @Controller('puntos')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class PuntosController {

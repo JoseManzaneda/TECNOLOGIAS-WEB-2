@@ -17,7 +17,8 @@ export class DireccionesService {
       direccion: dto.direccion,
       ciudad: dto.ciudad,
       referencia: dto.referencia,
-      userId,
+      // Mapear relación por usuario
+      usuario: { id: userId } as any,
     });
     return this.direccionRepo.save(direccion);
   }
@@ -39,7 +40,8 @@ export class DireccionesService {
 
     // Cliente solo puede ver sus propias direcciones
     return this.direccionRepo.find({
-      where: { userId: currentUser.id },
+      where: { usuario: { id: currentUser.id } },
+      relations: ['usuario'],
     });
   }
 
@@ -61,7 +63,7 @@ export class DireccionesService {
     }
 
     // Verificar autorización: admin puede ver cualquier dirección, cliente solo la suya
-    if (currentUser.rol !== 'admin' && direccion.userId !== currentUser.id) {
+    if (currentUser.rol !== 'admin' && direccion.usuario?.id !== currentUser.id) {
       throw new ForbiddenException('No tienes permisos para acceder a esta dirección');
     }
 
@@ -75,7 +77,7 @@ export class DireccionesService {
     }
 
     return this.direccionRepo.find({
-      where: { userId },
+      where: { usuario: { id: userId } },
       relations: ['usuario'],
       select: {
         usuario: {
@@ -95,7 +97,7 @@ export class DireccionesService {
     }
 
     // Verificar autorización: admin puede actualizar cualquier dirección, cliente solo la suya
-    if (currentUser.rol !== 'admin' && direccion.userId !== currentUser.id) {
+    if (currentUser.rol !== 'admin' && direccion.usuario?.id !== currentUser.id) {
       throw new ForbiddenException('No tienes permisos para actualizar esta dirección');
     }
 
@@ -114,7 +116,7 @@ export class DireccionesService {
     }
 
     // Verificar autorización: admin puede eliminar cualquier dirección, cliente solo la suya
-    if (currentUser.rol !== 'admin' && direccion.userId !== currentUser.id) {
+    if (currentUser.rol !== 'admin' && direccion.usuario?.id !== currentUser.id) {
       throw new ForbiddenException('No tienes permisos para eliminar esta dirección');
     }
 

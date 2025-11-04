@@ -1,5 +1,6 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { Product } from '../../products/entities/product.entity';
+import { Direccion } from '../../direcciones/entities/direccion.entity';
 // Relaciones futuras: pedidos, direcciones, puntos, reservas.
 
 export type UserRole = 'cliente' | 'admin';
@@ -18,16 +19,16 @@ export class User {
   @Column({ type: 'varchar', length: 20, nullable: true })
   telefono?: string | null;
 
-  @Column({ name: 'contraseña', type: 'varchar', length: 255 })
+  @Column({ name: 'contrasena', type: 'varchar', length: 255 })
   passwordHash!: string;
 
-  @Column({ type: 'enum', enum: ['cliente', 'admin'], default: 'cliente' })
+  @Column({ type: 'enum', enum: ['cliente', 'admin'], enumName: 'rol_usuario_enum', default: 'cliente' })
   rol!: UserRole;
 
   @Column({ name: 'fecha_registro', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   fechaRegistro!: Date;
 
-  // Placeholder: para ilustrar cómo un usuario podría tener productos (si fuera creador). No se usará ahora.
-  @OneToMany(() => Product, () => undefined, { nullable: true })
-  productosCreados?: Product[];
+  // Relación con direcciones del usuario
+  @OneToMany(() => Direccion, (direccion) => direccion.usuario)
+  direcciones?: Direccion[];
 }
