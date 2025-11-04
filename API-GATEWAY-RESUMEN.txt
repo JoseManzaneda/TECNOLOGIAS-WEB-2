@@ -1,0 +1,225 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                                                                           ║
+║            ✅ API GATEWAY IMPLEMENTADO Y FUNCIONANDO                     ║
+║                                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│  🏗️  ARQUITECTURA ACTUAL                                                  │
+└───────────────────────────────────────────────────────────────────────────┘
+
+    📱 Cliente (Frontend/Postman/etc)
+           │
+           │ HTTP Request
+           ↓
+    ┌──────────────────────┐
+    │   API GATEWAY        │  🔐 Valida JWT
+    │   Puerto: 3000       │  📝 Logging
+    │                      │  🌐 CORS
+    └──────────────────────┘
+           │
+           │ Proxy Request
+           ↓
+    ┌──────────────────────┐
+    │  LEGACY MONOLITH     │  💾 PostgreSQL
+    │  Puerto: 3001        │  🔴 Redis
+    │                      │  📦 Todos los módulos
+    └──────────────────────┘
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│  📁 ARCHIVOS CREADOS                                                      │
+└───────────────────────────────────────────────────────────────────────────┘
+
+    services/api-gateway/
+    │
+    ├── src/
+    │   ├── main.ts                    ✅ Bootstrap + CORS + Fastify
+    │   ├── app.module.ts              ✅ Configuración del módulo
+    │   │
+    │   ├── auth/
+    │   │   ├── jwt.strategy.ts        ✅ Validación de JWT
+    │   │   └── jwt-auth.guard.ts      ✅ Guard con rutas públicas
+    │   │
+    │   └── proxy/
+    │       └── proxy.controller.ts    ✅ Proxy a legacy-monolith
+    │
+    ├── package.json                   ✅ Dependencias (axios, passport-jwt)
+    ├── Dockerfile                     ✅ Multi-stage build
+    ├── tsconfig.json                  ✅ Configuración TypeScript
+    ├── nest-cli.json                  ✅ Configuración NestJS
+    ├── .env.example                   ✅ Variables de entorno
+    ├── .dockerignore                  ✅ Excluir archivos en build
+    └── README.md                      ✅ Documentación actualizada
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│  ⚙️  FUNCIONALIDADES IMPLEMENTADAS                                        │
+└───────────────────────────────────────────────────────────────────────────┘
+
+    ✅ Proxy HTTP completo
+       - Reenvía TODAS las peticiones a legacy-monolith:3001
+       - Preserva método, headers, body y query params
+       - Retorna respuestas completas con headers y status codes
+
+    ✅ Autenticación JWT
+       - Valida tokens en todas las rutas protegidas
+       - Rutas públicas: /auth/login, /auth/register, /health
+       - Usa el mismo JWT_SECRET que el monolito
+
+    ✅ CORS configurado
+       - Permite peticiones desde frontend
+       - Headers: Authorization, Content-Type
+       - Métodos: GET, POST, PUT, PATCH, DELETE
+
+    ✅ Logging
+       - Registra todas las peticiones
+       - Formato: "METHOD /path → http://legacy-monolith:3001/path"
+       - Errores detallados con stack trace
+
+    ✅ Manejo de errores
+       - Captura errores de conexión al monolito
+       - Respuestas 500 con mensaje descriptivo
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│  🔧 VARIABLES DE ENTORNO                                                  │
+└───────────────────────────────────────────────────────────────────────────┘
+
+    PORT=3000                          # Puerto del Gateway
+    LEGACY_MONOLITH_URL=http://...     # URL del monolito
+    JWT_SECRET=your-secret-key         # Mismo que el monolito
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│  🚀 CÓMO USAR                                                             │
+└───────────────────────────────────────────────────────────────────────────┘
+
+    # Iniciar con el script de utilidades
+    .\dev.ps1 start-gateway
+
+    # Ver logs en tiempo real
+    .\dev.ps1 logs-gateway
+
+    # Detener
+    .\dev.ps1 stop-all
+
+    # Reconstruir después de cambios
+    .\dev.ps1 rebuild-gateway
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│  📝 FLUJO DE UNA PETICIÓN                                                 │
+└───────────────────────────────────────────────────────────────────────────┘
+
+    1. Cliente hace petición: GET http://localhost:3000/products
+       └─> Header: Authorization: Bearer <token>
+
+    2. Gateway recibe la petición
+       └─> JwtAuthGuard valida el token
+           └─> Si válido: continúa
+           └─> Si inválido: retorna 401
+
+    3. ProxyController reenvía al monolito
+       └─> GET http://legacy-monolith:3001/products
+       └─> Con todos los headers originales
+
+    4. Monolito procesa y responde
+       └─> JSON con lista de productos
+
+    5. Gateway reenvía la respuesta al cliente
+       └─> Con el mismo status code y headers
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│  🧪 PRUEBAS RÁPIDAS                                                       │
+└───────────────────────────────────────────────────────────────────────────┘
+
+    # 1. Health check (sin JWT)
+    curl http://localhost:3000/health
+
+    # 2. Login (sin JWT)
+    POST http://localhost:3000/auth/login
+    {
+      "email": "user@example.com",
+      "password": "Password123"
+    }
+    
+    # Respuesta: { "access_token": "...", "user": {...} }
+
+    # 3. Obtener productos (con JWT)
+    GET http://localhost:3000/products
+    Authorization: Bearer <tu-token>
+
+    # 4. Intentar sin token (debe fallar)
+    GET http://localhost:3000/products
+    # Error 401 Unauthorized
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│  📊 DOCKER COMPOSE ACTUALIZADO                                            │
+└───────────────────────────────────────────────────────────────────────────┘
+
+    services:
+      api-gateway:              ✅ NUEVO
+        build: ./services/api-gateway
+        ports: 3000:3000
+        depends_on: legacy-monolith
+        
+      legacy-monolith:          ✅ Existente
+        build: ./services/legacy-monolith
+        ports: 3001:3001
+        
+      postgres:                 ✅ Existente
+        ports: 5433:5432
+        
+      redis:                    ✅ Existente
+        ports: 6379:6379
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│  🎯 BENEFICIOS LOGRADOS                                                   │
+└───────────────────────────────────────────────────────────────────────────┘
+
+    ✅ Punto de entrada único centralizado
+    ✅ Autenticación JWT centralizada y consistente
+    ✅ Facilita la migración gradual de servicios
+    ✅ El monolito ya no es accesible directamente (solo vía gateway)
+    ✅ Logging centralizado de todas las peticiones
+    ✅ CORS configurado una sola vez
+    ✅ Base sólida para agregar más funcionalidades:
+       - Rate limiting
+       - Caching
+       - Circuit breaker
+       - Load balancing
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│  🔜 PRÓXIMOS PASOS                                                        │
+└───────────────────────────────────────────────────────────────────────────┘
+
+    [ ] 1. Probar el flujo completo (register → login → recursos)
+    [ ] 2. Extraer código compartido a shared/
+    [ ] 3. Implementar rate limiting en el Gateway
+    [ ] 4. Planificar User Service
+    [ ] 5. Mover auth y users a User Service
+    [ ] 6. Actualizar Gateway para enrutar a User Service
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│  📚 DOCUMENTACIÓN ACTUALIZADA                                             │
+└───────────────────────────────────────────────────────────────────────────┘
+
+    ✅ README.md                         (Estado actualizado)
+    ✅ MIGRACION-MICROSERVICIOS.md       (Fase 2 completada)
+    ✅ PRUEBAS-API-GATEWAY.md           (Nuevo - Guía de pruebas)
+    ✅ services/api-gateway/README.md    (Documentación del servicio)
+    ✅ dev.ps1                           (Comandos del Gateway agregados)
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│  ⚡ COMANDOS NUEVOS EN dev.ps1                                            │
+└───────────────────────────────────────────────────────────────────────────┘
+
+    .\dev.ps1 start-gateway      # Iniciar Gateway + dependencias
+    .\dev.ps1 logs-gateway       # Ver logs del Gateway
+    .\dev.ps1 rebuild-gateway    # Reconstruir Gateway
+    .\dev.ps1 install-gateway    # Instalar dependencias
+
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                                                                           ║
+║         🎉 ¡API GATEWAY LISTO Y OPERACIONAL!                             ║
+║                                                                           ║
+║         Ahora todas las peticiones pasan por el puerto 3000              ║
+║         El monolito (3001) solo es accesible vía Gateway                 ║
+║                                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════╝

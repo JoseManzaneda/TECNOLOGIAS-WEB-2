@@ -36,12 +36,14 @@ TECNOLOGIAS-WEB-2/
 - [x] Actualizar `docker-compose.yml`
 - [x] Monolito funcionando en puerto 3001
 
-### Fase 2: 🔜 API Gateway
+### Fase 2: ✅ API Gateway (COMPLETADA)
 
-1. Implementar API Gateway básico
-2. Configurar enrutamiento al monolito
-3. Implementar autenticación centralizada
-4. Configurar rate limiting
+- [x] Implementar API Gateway básico
+- [x] Configurar enrutamiento al monolito (proxy completo)
+- [x] Implementar autenticación JWT centralizada
+- [x] Configurar CORS
+- [x] Agregar logging de peticiones
+- [ ] Configurar rate limiting (pendiente)
 
 ### Fase 3: 🔜 User Service
 
@@ -108,7 +110,7 @@ docker-compose up --build legacy-monolith
 
 | Servicio | Puerto | Estado |
 |----------|--------|--------|
-| API Gateway | 3000 | 🚧 Pendiente |
+| API Gateway | 3000 | ✅ Activo (Proxy + JWT) |
 | Legacy Monolith | 3001 | ✅ Activo |
 | User Service | 3002 | 🚧 Pendiente |
 | Catalog Service | 3003 | 🚧 Pendiente |
@@ -128,17 +130,31 @@ docker-compose up --build legacy-monolith
 
 ## 🔧 Próximos Pasos Inmediatos
 
-1. **Verificar que el monolito funciona correctamente**:
+1. **Verificar que el API Gateway funciona correctamente**:
    ```bash
-   docker-compose up legacy-monolith
-   # Verificar en http://localhost:3001
+   # Iniciar el Gateway y sus dependencias
+   .\dev.ps1 start-gateway
+   
+   # Verificar en http://localhost:3000
+   # El monolito está en http://localhost:3001 (no acceder directamente)
    ```
 
-2. **Preparar variables de entorno** - Asegurarse de que el archivo `.env` tiene todas las variables necesarias.
+2. **Probar el flujo completo**:
+   ```bash
+   # 1. Registrar usuario (no requiere JWT)
+   POST http://localhost:3000/auth/register
+   
+   # 2. Login (no requiere JWT)
+   POST http://localhost:3000/auth/login
+   
+   # 3. Usar el token para acceder a recursos protegidos
+   GET http://localhost:3000/products
+   Authorization: Bearer <token>
+   ```
 
-3. **Planificar el API Gateway** - Definir las rutas y la estrategia de enrutamiento.
+3. **Identificar dependencias compartidas** - Comenzar a extraer código común a la carpeta `shared/`.
 
-4. **Identificar dependencias compartidas** - Comenzar a extraer código común a la carpeta `shared/`.
+4. **Planificar User Service** - Preparar la migración de auth y users.
 
 ## 📚 Recursos
 

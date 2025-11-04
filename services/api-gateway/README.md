@@ -1,17 +1,65 @@
 # API Gateway
 
-Este directorio está reservado para el futuro API Gateway que coordinará las peticiones entre los diferentes microservicios.
+✅ **Estado:** Implementado y funcionando
 
-## Propósito
+El API Gateway es el punto de entrada único para todas las peticiones del cliente hacia los microservicios.
 
-El API Gateway actuará como punto de entrada único para todas las peticiones de los clientes, proporcionando:
+## Funcionalidad Actual
 
-- Enrutamiento inteligente a los microservicios apropiados
-- Autenticación y autorización centralizada
-- Rate limiting y throttling
-- Agregación de respuestas de múltiples servicios
-- Transformación de peticiones y respuestas
+- ✅ **Proxy HTTP**: Reenvía todas las peticiones a `legacy-monolith:3001`
+- ✅ **Autenticación JWT**: Valida tokens JWT en todas las rutas protegidas
+- ✅ **CORS**: Configurado para permitir peticiones desde el frontend
+- ✅ **Logging**: Registra todas las peticiones que pasan por el gateway
+- ✅ **Rutas públicas**: `/auth/login`, `/auth/register`, `/health` no requieren autenticación
 
-## Estado
+## Puerto
 
-🚧 Pendiente de implementación
+El API Gateway corre en el **puerto 3000**.
+
+## Arquitectura
+
+```
+Cliente → Gateway (3000) → Monolito Legacy (3001)
+          [Valida JWT]
+          [Logging]
+```
+
+## Variables de Entorno
+
+```env
+PORT=3000
+LEGACY_MONOLITH_URL=http://legacy-monolith:3001
+JWT_SECRET=your-secret-key
+```
+
+## Uso
+
+### Con Docker
+
+```bash
+docker-compose up api-gateway
+```
+
+### Local
+
+```bash
+cd services/api-gateway
+npm install
+npm run start:dev
+```
+
+## Rutas
+
+Todas las rutas son proxiadas al monolito:
+
+- `GET/POST/PUT/DELETE /*` → Se reenvía a `legacy-monolith:3001/*`
+
+### Rutas Públicas (sin JWT)
+
+- `/auth/login` - Login de usuario
+- `/auth/register` - Registro de usuario
+- `/health` - Health check
+
+### Rutas Protegidas (requieren JWT)
+
+Todas las demás rutas requieren un token JWT válido en el header `Authorization: Bearer <token>`

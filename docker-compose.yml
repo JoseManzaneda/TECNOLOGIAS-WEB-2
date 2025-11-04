@@ -26,6 +26,23 @@ services:
     networks:
       - cafeteria-net
 
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: cafeteria-api-gateway
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - legacy-monolith
+    environment:
+      - PORT=3000
+      - LEGACY_MONOLITH_URL=http://legacy-monolith:3001
+      - JWT_SECRET=${JWT_SECRET}
+    networks:
+      - cafeteria-net
+
   legacy-monolith:
     build:
       context: ./services/legacy-monolith
@@ -38,7 +55,9 @@ services:
       - postgres
       - redis
     environment:
-      - APP_PORT=3001
+      - PORT=3001
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER}

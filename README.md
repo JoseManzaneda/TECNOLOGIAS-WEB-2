@@ -4,12 +4,12 @@ Backend académico para una cafetería usando NestJS 10+, Fastify y TypeORM (Pos
 
 ## 🚀 Estado actual
 
-**🔄 Proyecto reorganizado para migración a microservicios**
+**🔄 Migración a microservicios en progreso**
 
 El proyecto ha sido reestructurado usando el patrón **Strangler Fig** para facilitar la migración gradual desde un monolito a una arquitectura de microservicios.
 
+- ✅ **API Gateway** funcionando en puerto 3000 (proxy + autenticación JWT)
 - ✅ **Monolito legacy** funcionando en `services/legacy-monolith/` (puerto 3001)
-- 🚧 **API Gateway** (pendiente)
 - 🚧 **User Service** (pendiente)
 - 🚧 **Catalog Service** (pendiente)
 
@@ -62,19 +62,24 @@ El monolito legacy incluye los siguientes módulos completos:
 - **Direcciones** - Direcciones de usuarios
 - **Puntos** - Sistema de puntos
 
-## � Inicio Rápido
+## 🚀 Inicio Rápido
 
 ### Opción 1: Docker (Recomendado)
 
 ```bash
-# Usando el script de utilidades
-.\dev.ps1 start-monolith
+# Iniciar API Gateway + Monolito + Base de datos
+.\dev.ps1 start-gateway
+
+# O iniciar todo
+.\dev.ps1 start-all
 
 # O directamente con docker-compose
-docker-compose up legacy-monolith
+docker-compose up api-gateway
 ```
 
-Acceder a: **http://localhost:3001/api** (Swagger docs)
+**Acceder a través del API Gateway:**
+- **API Gateway**: http://localhost:3000/api (Swagger docs)
+- **Monolito directo**: http://localhost:3001/api (solo para debug)
 
 ### Opción 2: Desarrollo Local
 
@@ -286,8 +291,8 @@ npm run test:coverage
 
 | Servicio | Estado | Puerto | Descripción |
 |----------|--------|--------|-------------|
+| API Gateway | ✅ Activo | 3000 | Proxy + JWT + CORS + Logging |
 | Legacy Monolith | ✅ Activo | 3001 | Monolito original funcionando |
-| API Gateway | 🚧 Pendiente | 3000 | Punto de entrada único |
 | User Service | 🚧 Pendiente | 3002 | Gestión de usuarios y auth |
 | Catalog Service | 🚧 Pendiente | 3003 | Productos y categorías |
 | Order Service | 🚧 Pendiente | 3004 | Pedidos y pagos |
