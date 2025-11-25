@@ -4,7 +4,7 @@ Backend académico para una cafetería usando NestJS 10+, Fastify y TypeORM (MyS
 
 ## 🚀 Estado actual
 
-Primera fase: Estructura inicial del proyecto y módulo de Productos (CRUD básico) listo.
+Proyecto completo con módulos implementados para gestión de cafetería: autenticación, usuarios, productos, categorías, direcciones, pedidos, pagos, ingredientes, producto-ingredientes, puntos y reservas. Incluye CRUD completo, validaciones, autenticación JWT, guards de roles y manejo de errores centralizado.
 
 ## 📁 Estructura de carpetas
 
@@ -14,27 +14,98 @@ src/
 	app.module.ts          # Módulo raíz con Config + TypeORM
 	config/
 		configuration.ts     # Carga centralizada de variables
-	common/                # (Reservado) Helpers, pipes, guards, interceptors reutilizables
+	common/                # Helpers, pipes, guards, interceptors reutilizables
+		decorators/
+			roles.decorator.ts
+		filters/
+			all-exceptions.filter.ts
+		guards/
+			roles.guard.ts
+		interceptors/
+			response-format.interceptor.ts
 	modules/
-		categories/
-			entities/
-				category.entity.ts
-			categories.module.ts
-		products/
+		auth/
+			auth.controller.ts
+			auth.service.ts
+			auth.module.ts
+			jwt-auth.guard.ts
+			jwt.strategy.ts
 			dto/
-				create-product.dto.ts
-				update-product.dto.ts
+		categories/
+			categories.controller.ts
+			categories.service.ts
+			categories.module.ts
+			dto/
 			entities/
-				product.entity.ts
+		direcciones/
+			direcciones.controller.ts
+			direcciones.service.ts
+			direcciones.module.ts
+			dto/
+			entities/
+		ingredientes/
+			ingredientes.controller.ts
+			ingredientes.service.ts
+			ingredientes.module.ts
+			dto/
+			entities/
+		pagos/
+			pagos.controller.ts
+			pagos.service.ts
+			pagos.module.ts
+			dto/
+			entities/
+		pedidos/
+			pedidos.controller.ts
+			pedidos.service.ts
+			pedidos.module.ts
+			dto/
+			entities/
+		producto-ingredientes/
+			producto-ingredientes.controller.ts
+			producto-ingredientes.service.ts
+			producto-ingredientes.module.ts
+			dto/
+			entities/
+		products/
 			products.controller.ts
 			products.service.ts
 			products.module.ts
+			dto/
+			entities/
+		puntos/
+			puntos.controller.ts
+			puntos.service.ts
+			puntos.module.ts
+			dto/
+			entities/
+		reservas/
+			reservas.controller.ts
+			reservas.service.ts
+			reservas.module.ts
+			dto/
+			entities/
+		users/
+			users.controller.ts
+			users.service.ts
+			users.module.ts
+			dto/
+			entities/
 ```
 
 ## 🧱 Entidades implementadas
 
+- Usuario (`usuarios`)
 - Producto (`productos`)
-- Categoría (`categorias`) – incluida para relación, CRUD se añadirá después
+- Categoría (`categorias`)
+- Dirección (`direcciones`)
+- Pedido (`pedidos`)
+- Pedido Detalle (`pedido_detalle`)
+- Pago (`pagos`)
+- Ingrediente (`ingredientes`)
+- Producto Ingrediente (`producto_ingredientes`)
+- Punto (`puntos`)
+- Reserva (`reservas`)
 
 ## 🔧 Requisitos previos
 
@@ -62,34 +133,85 @@ NODE_ENV=development
 - `npm run start:dev` – desarrollo con watch
 - `npm run build` – compila a `dist`
 - `npm run start:prod` – ejecuta versión compilada
+- `npm run lint` – ejecuta ESLint
+- `npm run format` – formatea código con Prettier
+- `npm run test` – ejecuta tests con Jest
+- `npm run test:watch` – tests en modo watch
+- `npm run test:coverage` – tests con cobertura
 
 ## 🔌 Endpoints actuales
 
 Prefijo global: `/api`
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| POST | /api/products | Crear producto |
-| GET | /api/products | Listar productos (incluye categoría) |
-| GET | /api/products/:id | Obtener producto por ID |
-| PATCH | /api/products/:id | Actualizar producto |
-| PUT | /api/products/:id | Reemplazar producto (todos campos obligatorios) |
-| DELETE | /api/products/:id | Eliminar producto |
-| POST | /api/categories | Crear categoría |
-| GET | /api/categories | Listar categorías (incluye productos) |
-| GET | /api/categories/:id | Obtener categoría por ID |
-| PATCH | /api/categories/:id | Actualizar categoría |
-| PUT | /api/categories/:id | Reemplazar categoría |
-| DELETE | /api/categories/:id | Eliminar categoría |
-| POST | /api/auth/register | Registrar usuario |
-| POST | /api/auth/login | Iniciar sesión (JWT) |
-| GET | /api/users | Listar usuarios (restringir a admin) |
-| GET | /api/users/:id | Obtener usuario |
-| PATCH | /api/users/:id | Actualizar usuario |
-| PUT | /api/users/:id | Reemplazar usuario |
-| DELETE | /api/users/:id | Eliminar usuario (admin) |
+| Método | Ruta | Descripción | Roles |
+|--------|------|-------------|-------|
+| GET | /api | Información de la API | Público |
+| GET | /api/health | Estado de salud | Público |
+| POST | /api/auth/register | Registrar usuario | Público |
+| POST | /api/auth/login | Iniciar sesión (JWT) | Público |
+| POST | /api/users | Crear usuario | admin |
+| GET | /api/users | Listar usuarios | admin |
+| GET | /api/users/profile | Obtener perfil | autenticado |
+| GET | /api/users/:id | Obtener usuario por ID | admin o propio |
+| PATCH | /api/users/:id | Actualizar usuario | admin o propio |
+| PUT | /api/users/:id | Reemplazar usuario | admin o propio |
+| DELETE | /api/users/:id | Eliminar usuario | admin |
+| POST | /api/categories | Crear categoría | admin |
+| GET | /api/categories | Listar categorías | Público |
+| GET | /api/categories/:id | Obtener categoría por ID | Público |
+| PATCH | /api/categories/:id | Actualizar categoría | admin |
+| PUT | /api/categories/:id | Reemplazar categoría | admin |
+| DELETE | /api/categories/:id | Eliminar categoría | admin |
+| POST | /api/products | Crear producto | admin |
+| GET | /api/products | Listar productos | Público |
+| GET | /api/products/:id | Obtener producto por ID | Público |
+| PATCH | /api/products/:id | Actualizar producto | admin |
+| PUT | /api/products/:id | Reemplazar producto | admin |
+| DELETE | /api/products/:id | Eliminar producto | admin |
+| POST | /api/direcciones | Crear dirección | autenticado |
+| GET | /api/direcciones | Listar direcciones | autenticado |
+| GET | /api/direcciones/:id | Obtener dirección por ID | autenticado |
+| PATCH | /api/direcciones/:id | Actualizar dirección | autenticado |
+| PUT | /api/direcciones/:id | Reemplazar dirección | autenticado |
+| DELETE | /api/direcciones/:id | Eliminar dirección | autenticado |
+| POST | /api/pedidos | Crear pedido | autenticado |
+| GET | /api/pedidos | Listar pedidos | autenticado |
+| GET | /api/pedidos/:id | Obtener pedido por ID | autenticado |
+| PATCH | /api/pedidos/:id | Actualizar pedido | admin |
+| PUT | /api/pedidos/:id | Reemplazar pedido | admin |
+| DELETE | /api/pedidos/:id | Eliminar pedido | admin |
+| POST | /api/pagos | Crear pago | autenticado |
+| GET | /api/pagos | Listar pagos | admin |
+| GET | /api/pagos/:id | Obtener pago por ID | admin |
+| PATCH | /api/pagos/:id | Actualizar pago | admin |
+| PUT | /api/pagos/:id | Reemplazar pago | admin |
+| DELETE | /api/pagos/:id | Eliminar pago | admin |
+| POST | /api/ingredientes | Crear ingrediente | admin |
+| GET | /api/ingredientes | Listar ingredientes | Público |
+| GET | /api/ingredientes/:id | Obtener ingrediente por ID | Público |
+| PATCH | /api/ingredientes/:id | Actualizar ingrediente | admin |
+| PUT | /api/ingredientes/:id | Reemplazar ingrediente | admin |
+| DELETE | /api/ingredientes/:id | Eliminar ingrediente | admin |
+| POST | /api/producto-ingredientes | Crear relación producto-ingrediente | admin |
+| GET | /api/producto-ingredientes | Listar relaciones | Público |
+| GET | /api/producto-ingredientes/:id | Obtener relación por ID | Público |
+| PATCH | /api/producto-ingredientes/:id | Actualizar relación | admin |
+| PUT | /api/producto-ingredientes/:id | Reemplazar relación | admin |
+| DELETE | /api/producto-ingredientes/:id | Eliminar relación | admin |
+| POST | /api/puntos | Crear punto | admin |
+| GET | /api/puntos | Listar puntos | autenticado |
+| GET | /api/puntos/:id | Obtener punto por ID | autenticado |
+| PATCH | /api/puntos/:id | Actualizar punto | admin |
+| PUT | /api/puntos/:id | Reemplazar punto | admin |
+| DELETE | /api/puntos/:id | Eliminar punto | admin |
+| POST | /api/reservas | Crear reserva | autenticado |
+| GET | /api/reservas | Listar reservas | autenticado |
+| GET | /api/reservas/:id | Obtener reserva por ID | autenticado |
+| PATCH | /api/reservas/:id | Actualizar reserva | admin |
+| PUT | /api/reservas/:id | Reemplazar reserva | admin |
+| DELETE | /api/reservas/:id | Eliminar reserva | admin |
 
-Body ejemplo creación:
+Body ejemplo creación de producto:
 
 ```json
 {
@@ -115,19 +237,21 @@ Crear categoría:
 
 - `class-validator` + `ValidationPipe` (whitelist, forbidNonWhitelisted).
 - Conversión automática de tipos (`transform: true`).
-- Límites: `nombre` ≤ 50 (todas las entidades), `email` ≤ 100.
+- Límites: `nombre` ≤ 100 (todas las entidades), `email` ≤ 100.
 - Contraseñas: mínimo 8 caracteres con mayúscula, minúscula y dígito.
 - Mensajes de error JSON unificados mediante filtro global (`AllExceptionsFilter`).
 - Códigos HTTP: 201 en POST, 200 en GET/PUT/PATCH/DELETE, 400 validación, 404 no encontrado, 500 interno.
 
-## 🛠 Próximos pasos (siguientes módulos)
+## 🛠 Próximos pasos (mejoras futuras)
 
-1. Proteger endpoints de usuarios y productos con JwtAuthGuard y RolesGuard
-2. Añadir paginación y filtros (query params) en listados
-3. Logger y manejo centralizado de excepciones (filtro global)
-4. Tests unitarios (Jest) de servicios y guards
-5. Migraciones TypeORM para producción (desactivar synchronize)
-6. Rate limiting básico y helmet (seguridad)
+1. Paginación y filtros (query params) en listados
+2. Logger centralizado
+3. Tests unitarios completos (Jest) de servicios y guards
+4. Migraciones TypeORM para producción (desactivar synchronize)
+5. Rate limiting básico y helmet (seguridad)
+6. Documentación con Swagger
+7. Caché con Redis
+8. Notificaciones por email
 
 ## 🔐 Autenticación
 
