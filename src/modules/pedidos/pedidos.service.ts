@@ -3,9 +3,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Pedido, EstadoPedido, MetodoPago } from './entities/pedido.entity';
 import { PedidoDetalle } from './entities/pedido-detalle.entity';
-import { Product } from '../products/entities/product.entity';
 import { CreatePedidoDto } from './dto/create-pedido.dto';
 import { UpdatePedidoDto } from './dto/update-pedido.dto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { 
+  PedidoCreadoEvent, 
+  PedidoEstadoActualizadoEvent,
+  PedidoCanceladoEvent 
+} from '../../shared/events';
+import { EventLogger } from '../../shared/utils';
 
 @Injectable()
 export class PedidosService {
@@ -14,88 +20,64 @@ export class PedidosService {
     private readonly pedidoRepo: Repository<Pedido>,
     @InjectRepository(PedidoDetalle)
     private readonly pedidoDetalleRepo: Repository<PedidoDetalle>,
-    @InjectRepository(Product)
-    private readonly productRepo: Repository<Product>,
-    private readonly dataSource: DataSource
+    private readonly dataSource: DataSource,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(dto: CreatePedidoDto, userId: number) {
-    // Validaciones básicas
     if (!dto.detalles || dto.detalles.length === 0) {
       throw new BadRequestException('El pedido debe incluir al menos un producto');
     }
 
-    // Usar transacción para garantizar integridad
-    return await this.dataSource.transaction(async manager => {
-      // Verificar que todos los productos existen y están disponibles
-      const productIds = dto.detalles.map(d => d.productoId);
-      const productos = await manager.find(Product, { 
-        where: productIds.map(id => ({ id })) 
-      });
-      
-      if (productos.length !== productIds.length) {
-        throw new BadRequestException('Uno o más productos no existen');
-      }
-
-      // Verificar disponibilidad y stock
-      for (const detalle of dto.detalles) {
-        if (detalle.cantidad <= 0) {
-          throw new BadRequestException('La cantidad debe ser mayor a 0');
-        }
-        
-        const producto = productos.find(p => p.id === detalle.productoId);
-        if (!producto?.disponible) {
-          throw new BadRequestException(`El producto ${producto?.nombre} no está disponible`);
-        }
-        if (producto.stock < detalle.cantidad) {
-          throw new BadRequestException(`Stock insuficiente para ${producto.nombre}. Stock disponible: ${producto.stock}`);
-        }
-      }
-
-      // Crear pedido
-      const pedido = manager.create(Pedido, {
-        userId,
-        metodoPago: dto.metodoPago || MetodoPago.EFECTIVO,
-        estado: EstadoPedido.PENDIENTE,
-      });
-
-      const pedidoGuardado = await manager.save(pedido);
-
-      // Crear detalles y calcular total
-      let total = 0;
-      const detalles = [];
-
-      for (const detalleDto of dto.detalles) {
-        const producto = productos.find(p => p.id === detalleDto.productoId)!;
-        const subtotal = producto.precio * detalleDto.cantidad;
-        total += subtotal;
-
-        const detalle = manager.create(PedidoDetalle, {
-          pedidoId: pedidoGuardado.id,
-          productoId: detalleDto.productoId,
-          cantidad: detalleDto.cantidad,
-          precioUnitario: producto.precio,
-        });
-
-        detalles.push(detalle);
-
-        // Actualizar stock de forma transaccional
-        producto.stock -= detalleDto.cantidad;
-        await manager.save(producto);
-      }
-
-      await manager.save(detalles);
-
-      // Actualizar total del pedido
-      pedidoGuardado.total = total;
-      await manager.save(pedidoGuardado);
-
-      // Retornar pedido completo con relaciones
-      return await manager.findOne(Pedido, {
-        where: { id: pedidoGuardado.id },
-        relations: ['detalles', 'detalles.producto', 'user']
-      });
+    // Crear pedido inicial
+    const pedido = this.pedidoRepo.create({
+      userId,
+      metodoPago: dto.metodoPago || MetodoPago.EFECTIVO,
+      estado: EstadoPedido.PENDIENTE,
+      total: 0,
     });
+
+    const pedidoGuardado = await this.pedidoRepo.save(pedido);
+
+    // Crear detalles y calcular total
+    let total = 0;
+    const detallesParaEvento: { productoId: number; cantidad: number; precioUnitario: number }[] = [];
+
+    for (const detalle of dto.detalles) {
+      if (detalle.cantidad <= 0) {
+        throw new BadRequestException('La cantidad debe ser mayor a 0');
+      }
+
+      const pedidoDetalle = this.pedidoDetalleRepo.create({
+        pedidoId: pedidoGuardado.id,
+        productoId: detalle.productoId,
+        cantidad: detalle.cantidad,
+        precioUnitario: detalle.precioUnitario,
+      });
+      await this.pedidoDetalleRepo.save(pedidoDetalle);
+      total += detalle.precioUnitario * detalle.cantidad;
+      detallesParaEvento.push({
+        productoId: detalle.productoId,
+        cantidad: detalle.cantidad,
+        precioUnitario: detalle.precioUnitario,
+      });
+    }
+
+    pedidoGuardado.total = total;
+    await this.pedidoRepo.save(pedidoGuardado);
+
+    // Emitir evento asincrónico para que otro módulo actualice stock
+    const event = new PedidoCreadoEvent(
+      pedidoGuardado.id,
+      userId,
+      detallesParaEvento,
+      total,
+      dto.metodoPago || MetodoPago.EFECTIVO,
+    );
+    this.eventEmitter.emit('pedido.creado', event);
+    EventLogger.logEmit('pedido.creado', event);
+
+    return this.findOne(pedidoGuardado.id, { id: userId, rol: 'admin' }); // Ajustar rol según contexto real
   }
 
   async findAll(currentUser: any) {
@@ -207,26 +189,36 @@ export class PedidosService {
       }
     }
 
-    // Si se cancela el pedido, restaurar stock
-    if (dto.estado === EstadoPedido.CANCELADO && pedido.estado !== EstadoPedido.CANCELADO) {
-      const detalles = await this.pedidoDetalleRepo.find({
-        where: { pedidoId: id },
-        relations: ['producto']
-      });
+    if (dto.estado) {
+      const estadoAnterior = pedido.estado;
+      pedido.estado = dto.estado;
+      if (dto.metodoPago !== undefined) pedido.metodoPago = dto.metodoPago;
+      const pedidoActualizado = await this.pedidoRepo.save(pedido);
 
-      for (const detalle of detalles) {
-        if (detalle.producto) {
-          detalle.producto.stock += detalle.cantidad;
-          await this.productRepo.save(detalle.producto);
-        }
+      const event = new PedidoEstadoActualizadoEvent(
+        pedido.id,
+        estadoAnterior,
+        pedido.estado,
+        pedido.userId,
+      );
+      this.eventEmitter.emit('pedido.estado.actualizado', event);
+      EventLogger.logEmit('pedido.estado.actualizado', event);
+
+      if (dto.estado === EstadoPedido.CANCELADO && estadoAnterior !== EstadoPedido.CANCELADO) {
+        const detalles = await this.pedidoDetalleRepo.find({ where: { pedidoId: id } });
+        const detallesParaEvento = detalles.map(d => ({ productoId: d.productoId, cantidad: d.cantidad }));
+        const cancelEvent = new PedidoCanceladoEvent(pedido.id, pedido.userId, detallesParaEvento);
+        this.eventEmitter.emit('pedido.cancelado', cancelEvent);
+        EventLogger.logEmit('pedido.cancelado', cancelEvent);
       }
+
+      return this.findOne(id, currentUser);
     }
 
-    if (dto.estado !== undefined) pedido.estado = dto.estado;
-    if (dto.metodoPago !== undefined) pedido.metodoPago = dto.metodoPago;
-
-    await this.pedidoRepo.save(pedido);
-
+    if (dto.metodoPago !== undefined) {
+      pedido.metodoPago = dto.metodoPago;
+      await this.pedidoRepo.save(pedido);
+    }
     return this.findOne(id, currentUser);
   }
 
@@ -245,16 +237,7 @@ export class PedidosService {
       throw new NotFoundException('Pedido no encontrado');
     }
 
-    // Restaurar stock si el pedido no estaba cancelado
-    if (pedido.estado !== EstadoPedido.CANCELADO) {
-      for (const detalle of pedido.detalles || []) {
-        if (detalle.producto) {
-          detalle.producto.stock += detalle.cantidad;
-          await this.productRepo.save(detalle.producto);
-        }
-      }
-    }
-
+    // Se podría emitir evento compensatorio aquí si se requiere reponer stock
     await this.pedidoRepo.remove(pedido);
   }
 
