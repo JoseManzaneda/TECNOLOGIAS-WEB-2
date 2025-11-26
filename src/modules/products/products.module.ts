@@ -7,7 +7,7 @@ import { Category } from '../categories/entities/category.entity';
 import { ProductStockListener } from './listeners/product-stock.listener';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Product, Category])],
+  imports: [TypeOrmModule.forFeature([Product, Category], 'productsConnection')],
   controllers: [ProductsController],
   providers: [ProductsService, ProductStockListener],
   exports: [ProductsService],

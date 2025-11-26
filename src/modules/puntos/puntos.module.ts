@@ -4,6 +4,8 @@ import { PuntosService } from './puntos.service';
 import { PuntosController } from './puntos.controller';
 import { Puntos } from './entities/puntos.entity';
 import { User } from '../users/entities/user.entity';
+import { PuntosPagoListener } from './listeners/puntos-pago.listener';
+import { PuntosUsuarioListener } from './listeners/puntos-usuario.listener';
 
 /**
  * Módulo de gestión de puntos de lealtad
@@ -28,10 +30,10 @@ import { User } from '../users/entities/user.entity';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Puntos, User])
+    TypeOrmModule.forFeature([Puntos, User], 'customerConnection')
   ],
   controllers: [PuntosController],
-  providers: [PuntosService],
+  providers: [PuntosService, PuntosPagoListener, PuntosUsuarioListener],
   exports: [PuntosService], // Para usar en otros módulos (ej: Pedidos)
 })
 export class PuntosModule {}

@@ -8,7 +8,7 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectRepository(User) private readonly userRepo: Repository<User>) {}
+  constructor(@InjectRepository(User, 'authConnection') private readonly userRepo: Repository<User>) {}
 
   private sanitize(user: User) {
     const { passwordHash, ...rest } = user;

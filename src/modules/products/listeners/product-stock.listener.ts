@@ -14,7 +14,7 @@ export class ProductStockListener {
   private readonly logger = new Logger(ProductStockListener.name);
 
   constructor(
-    @InjectRepository(Product)
+  @InjectRepository(Product, 'productsConnection')
     private productRepository: Repository<Product>,
   ) {}
 

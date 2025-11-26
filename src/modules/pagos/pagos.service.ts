@@ -5,14 +5,18 @@ import { Pago, EstadoPago } from './entities/pago.entity';
 import { Pedido } from '../pedidos/entities/pedido.entity';
 import { CreatePagoDto } from './dto/create-pago.dto';
 import { UpdatePagoDto } from './dto/update-pago.dto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { PagoCreadoEvent, PagoProcesadoEvent, PagoRechazadoEvent } from '../../shared/events';
+import { EventLogger } from '../../shared/utils';
 
 @Injectable()
 export class PagosService {
   constructor(
-    @InjectRepository(Pago)
+  @InjectRepository(Pago, 'ordersConnection')
     private readonly pagoRepo: Repository<Pago>,
-    @InjectRepository(Pedido)
-    private readonly pedidoRepo: Repository<Pedido>
+  @InjectRepository(Pedido, 'ordersConnection')
+    private readonly pedidoRepo: Repository<Pedido>,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(dto: CreatePagoDto, currentUser: any) {
@@ -52,7 +56,18 @@ export class PagosService {
       estado: EstadoPago.PENDIENTE,
     });
 
-    return this.pagoRepo.save(pago);
+    const pagoGuardado = await this.pagoRepo.save(pago);
+
+    const event = new PagoCreadoEvent(
+      pagoGuardado.id,
+      dto.pedidoId,
+      dto.monto,
+      dto.metodo,
+    );
+    this.eventEmitter.emit('pago.creado', event);
+    EventLogger.logEmit('pago.creado', event);
+
+    return this.findOne(pagoGuardado.id, currentUser);
   }
 
   async findAll(currentUser: any) {
@@ -274,6 +289,27 @@ export class PagosService {
     }
 
     pago.estado = nuevoEstado;
-    return this.pagoRepo.save(pago);
+    const pagoActualizado = await this.pagoRepo.save(pago);
+
+    if (nuevoEstado === EstadoPago.COMPLETADO) {
+      const event = new PagoProcesadoEvent(
+        pago.id,
+        pago.pedido.id,
+        pago.monto,
+        pago.pedido.userId,
+      );
+      this.eventEmitter.emit('pago.procesado', event);
+      EventLogger.logEmit('pago.procesado', event);
+    } else if (nuevoEstado === EstadoPago.FALLIDO) {
+      const event = new PagoRechazadoEvent(
+        pago.id,
+        pago.pedido.id,
+        'Procesamiento fallido',
+      );
+      this.eventEmitter.emit('pago.rechazado', event);
+      EventLogger.logEmit('pago.rechazado', event);
+    }
+
+    return pagoActualizado;
   }
 }

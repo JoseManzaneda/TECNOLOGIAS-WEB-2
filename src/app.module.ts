@@ -2,6 +2,12 @@ import { Module } from '@nestjs/common';
 import { Controller, Get } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import {
+  authDatabaseConfig,
+  productsDatabaseConfig,
+  ordersDatabaseConfig,
+  customerDatabaseConfig,
+} from './config/database.config';
 import configuration from './config/configuration';
 import { EventsModule } from './shared/events/events.module';
 import { ProductsModule } from './modules/products/products.module';
@@ -15,6 +21,7 @@ import { IngredientesModule } from './modules/ingredientes/ingredientes.module';
 import { ProductoIngredientesModule } from './modules/producto-ingredientes/producto-ingredientes.module';
 import { PuntosModule } from './modules/puntos/puntos.module';
 import { ReservasModule } from './modules/reservas/reservas.module';
+import { GatewayModule } from './modules/gateway/gateway.module';
 
 @Controller()
 class AppController {
@@ -55,21 +62,11 @@ class AppController {
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
     EventsModule,
-    TypeOrmModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'mysql',
-        host: config.get<string>('database.host'),
-        port: config.get<number>('database.port'),
-        username: config.get<string>('database.user'),
-        password: config.get<string>('database.password'),
-        database: config.get<string>('database.name'),
-        autoLoadEntities: true,
-        synchronize: config.get<string>('app.env') !== 'production',
-        logging: config.get<string>('app.env') !== 'production',
-        charset: 'utf8mb4_general_ci',
-      }),
-    }),
+    // Conexiones múltiples para arquitectura de microservicios
+    TypeOrmModule.forRoot(authDatabaseConfig),
+    TypeOrmModule.forRoot(productsDatabaseConfig),
+    TypeOrmModule.forRoot(ordersDatabaseConfig),
+    TypeOrmModule.forRoot(customerDatabaseConfig),
     CategoriesModule,
     ProductsModule,
     UsersModule,
@@ -81,6 +78,7 @@ class AppController {
     ProductoIngredientesModule,
     PuntosModule,
     ReservasModule,
+    GatewayModule,
   ],
   controllers: [AppController],
 })

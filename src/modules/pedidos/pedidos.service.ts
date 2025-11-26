@@ -16,9 +16,9 @@ import { EventLogger } from '../../shared/utils';
 @Injectable()
 export class PedidosService {
   constructor(
-    @InjectRepository(Pedido)
+  @InjectRepository(Pedido, 'ordersConnection')
     private readonly pedidoRepo: Repository<Pedido>,
-    @InjectRepository(PedidoDetalle)
+  @InjectRepository(PedidoDetalle, 'ordersConnection')
     private readonly pedidoDetalleRepo: Repository<PedidoDetalle>,
     private readonly dataSource: DataSource,
     private readonly eventEmitter: EventEmitter2,
